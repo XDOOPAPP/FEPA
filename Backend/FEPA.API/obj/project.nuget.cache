@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "KfeTbGUvDek=",
+  "success": true,
+  "projectFilePath": "G:\\Project\\FEPA\\Backend\\FEPA.API\\FEPA.API.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\ayemq\\.nuget\\packages\\microsoft.aspnetcore.openapi\\9.0.0\\microsoft.aspnetcore.openapi.9.0.0.nupkg.sha512",
+    "C:\\Users\\ayemq\\.nuget\\packages\\microsoft.openapi\\1.6.17\\microsoft.openapi.1.6.17.nupkg.sha512"
+  ],
+  "logs": []
+}
