@@ -1,0 +1,48 @@
+.login-container {
+  background: linear-gradient(135deg, #001529 0%, #0050b3 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-card {
+  background: white;
+  border: none;
+  border-radius: 8px;
+}
+
+.login-card .ant-form-item {
+  margin-bottom: 16px;
+}
+
+.login-card .ant-input,
+.login-card .ant-input-password {
+  font-size: 14px;
+}
+
+.login-card .ant-btn {
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+.login-card .ant-btn-primary {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}
+
+.login-card .ant-btn-primary:hover {
+  background-color: #0050b3;
+  border-color: #0050b3;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .login-container {
+    padding: 20px;
+  }
+
+  .login-card {
+    margin: 0 10px;
+  }
+}

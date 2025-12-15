@@ -1,0 +1,60 @@
+/* Auth Pages Styles */
+
+.authContainer {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.authCard {
+  width: 100%;
+  max-width: 450px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+}
+
+.authForm {
+  width: 100%;
+}
+
+.authButton {
+  height: 40px;
+  font-size: 16px;
+}
+
+.authLink {
+  color: #667eea;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.authLink:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+
+.stepsContainer {
+  margin-bottom: 24px;
+}
+
+.codeInput {
+  letter-spacing: 10px;
+  font-size: 24px;
+  text-align: center;
+}
+
+.centerText {
+  text-align: center;
+}
+
+.backButton {
+  margin-bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
