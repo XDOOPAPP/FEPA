@@ -64,7 +64,7 @@ const ForgotPassword: React.FC = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: 'linear-gradient(135deg, #5490c1ff 0%, #4d91efff 100%)',
       padding: '20px'
     }}>
       <Card style={{ width: '100%', maxWidth: '450px' }}>

@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { Card, Table, Button, Space, Modal, Form, Input, Select, Tag, message, Row, Col, Statistic } from 'antd'
+import { Card, Table, Button, Space, Modal, Form, Input, Select, Tag, message, Row, Col, Statistic, Checkbox } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
+import { useBulkActions } from '../../hooks/useBulkActions'
+import { BulkActionsBar, commonBulkActions } from '../../components/BulkActionsBar'
+import { exportToCSV } from '../../utils/exportUtils'
+import { RichTextEditor } from '../../components/RichTextEditor'
 
 const { TextArea } = Input
 
@@ -29,6 +33,21 @@ const BlogManagement: React.FC = () => {
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null)
   const [form] = Form.useForm()
   const [content, setContent] = useState('')
+
+  // Bulk actions
+  const {
+    selectedIds,
+    selectedItems,
+    isAllSelected,
+    isSomeSelected,
+    toggleItem,
+    toggleAll,
+    deselectAll,
+    isSelected,
+  } = useBulkActions({
+    items: posts,
+    getItemId: (post) => post.id,
+  })
 
   // API: GET /api/blogs
   useEffect(() => {
@@ -174,7 +193,46 @@ const BlogManagement: React.FC = () => {
     }
   }
 
+  // Bulk actions handlers
+  const handleBulkDelete = () => {
+    const remaining = posts.filter(p => !selectedIds.has(p.id))
+    savePosts(remaining)
+    deselectAll()
+    message.success(`Đã xóa ${selectedIds.size} bài viết`)
+  }
+
+  const handleBulkExport = () => {
+    const dataToExport = selectedItems.map(post => ({
+      'Tiêu đề': post.title,
+      'Slug': post.slug,
+      'Danh mục': post.category,
+      'Tags': post.tags.join(', '),
+      'Trạng thái': post.status === 'published' ? 'Đã đăng' : post.status === 'draft' ? 'Nháp' : 'Lưu trữ',
+      'Lượt xem': post.views,
+      'Ngày tạo': dayjs(post.createdAt).format('DD/MM/YYYY HH:mm'),
+    }))
+    exportToCSV(dataToExport, { filename: 'blog-posts-export' })
+    message.success(`Đã export ${selectedIds.size} bài viết`)
+  }
+
   const columns: ColumnsType<BlogPost> = [
+    {
+      title: (
+        <Checkbox
+          checked={isAllSelected}
+          indeterminate={isSomeSelected}
+          onChange={toggleAll}
+        />
+      ),
+      key: 'checkbox',
+      width: 50,
+      render: (_: any, record: BlogPost) => (
+        <Checkbox
+          checked={isSelected(record.id)}
+          onChange={() => toggleItem(record.id)}
+        />
+      ),
+    },
     {
       title: 'Tiêu đề',
       dataIndex: 'title',
@@ -306,6 +364,16 @@ const BlogManagement: React.FC = () => {
         />
       </Card>
 
+      {/* Bulk Actions Bar */}
+      <BulkActionsBar
+        selectedCount={selectedIds.size}
+        onClearSelection={deselectAll}
+        actions={[
+          commonBulkActions.delete(handleBulkDelete),
+          commonBulkActions.export(handleBulkExport),
+        ]}
+      />
+
       <Modal
         title={editingPost ? 'Sửa bài viết' : 'Thêm bài viết mới'}
         open={isModalVisible}
@@ -345,11 +413,15 @@ const BlogManagement: React.FC = () => {
           </Form.Item>
 
           <Form.Item
-            name="content"
             label="Nội dung"
-            rules={[{ required: true, message: 'Vui lòng nhập nội dung' }]}
+            required
           >
-            <TextArea rows={15} placeholder="Nội dung bài viết (hỗ trợ Markdown)" />
+            <RichTextEditor
+              value={content}
+              onChange={setContent}
+              placeholder="Nhập nội dung bài viết..."
+              height={400}
+            />
           </Form.Item>
 
           <Row gutter={16}>

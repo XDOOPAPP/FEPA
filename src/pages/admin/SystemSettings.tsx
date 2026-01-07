@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Card, Tabs, Form, Input, Button, Space, Switch, InputNumber, Divider, Tag, message, Select, Row, Col, Modal, Table } from 'antd'
-import { DollarOutlined, SafetyOutlined, ApiOutlined, CheckCircleOutlined, CloseCircleOutlined, BellOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
-import dayjs from 'dayjs'
+import { Card, Tabs, Form, Input, Button, Space, Switch, InputNumber, Divider, Tag, message, Select, Row, Col } from 'antd'
+import { DollarOutlined, SafetyOutlined, ApiOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 
 const { TabPane } = Tabs
 
@@ -34,15 +33,6 @@ interface SecuritySettings {
   passwordRequireSpecialChar: boolean
 }
 
-interface NotificationTemplate {
-  id: string
-  title: string
-  message: string
-  type: 'info' | 'success' | 'warning' | 'error'
-  priority: 'low' | 'medium' | 'high'
-  createdAt: string
-}
-
 const SystemSettings: React.FC = () => {
   const [apiKeys, setApiKeys] = useState<APIKey[]>([])
   const [financialRules, setFinancialRules] = useState<FinancialRule[]>([])
@@ -56,13 +46,9 @@ const SystemSettings: React.FC = () => {
     passwordMinLength: 8,
     passwordRequireSpecialChar: true,
   })
-  const [notifications, setNotifications] = useState<NotificationTemplate[]>([])
-  const [notificationModalVisible, setNotificationModalVisible] = useState(false)
-  const [editingNotification, setEditingNotification] = useState<NotificationTemplate | null>(null)
 
   const [apiForm] = Form.useForm()
   const [securityForm] = Form.useForm()
-  const [notificationForm] = Form.useForm()
 
   // TODO: Replace with API call - GET /api/system/settings
   useEffect(() => {
@@ -154,12 +140,6 @@ const SystemSettings: React.FC = () => {
     } else {
       securityForm.setFieldsValue(securitySettings)
     }
-
-    // Load notifications
-    const storedNotifications = localStorage.getItem('notification_templates')
-    if (storedNotifications) {
-      setNotifications(JSON.parse(storedNotifications))
-    }
   }, [])
 
   const handleSaveAPIKey = async (service: string) => {
@@ -205,146 +185,6 @@ const SystemSettings: React.FC = () => {
       currency: 'VND',
     }).format(amount)
   }
-
-  const handleCreateNotification = () => {
-    setEditingNotification(null)
-    notificationForm.resetFields()
-    setNotificationModalVisible(true)
-  }
-
-  const handleEditNotification = (notification: NotificationTemplate) => {
-    setEditingNotification(notification)
-    notificationForm.setFieldsValue(notification)
-    setNotificationModalVisible(true)
-  }
-
-  const handleSaveNotification = async () => {
-    try {
-      const values = await notificationForm.validateFields()
-      const storedNotifications = localStorage.getItem('admin_notifications') || '[]'
-      const allNotifications = JSON.parse(storedNotifications)
-      
-      const newNotification = {
-        id: editingNotification?.id || Date.now().toString(),
-        title: values.title,
-        message: values.message,
-        type: values.type,
-        priority: values.priority,
-        read: false,
-        createdAt: editingNotification?.createdAt || new Date().toISOString()
-      }
-
-      if (editingNotification) {
-        // Update existing notification
-        const updatedNotifications = allNotifications.map((n: any) =>
-          n.id === editingNotification.id ? newNotification : n
-        )
-        localStorage.setItem('admin_notifications', JSON.stringify(updatedNotifications))
-        
-        // Update template
-        const updatedTemplates = notifications.map(n =>
-          n.id === editingNotification.id ? newNotification : n
-        )
-        setNotifications(updatedTemplates)
-        localStorage.setItem('notification_templates', JSON.stringify(updatedTemplates))
-        message.success('Đã cập nhật thông báo')
-      } else {
-        // Create new notification
-        allNotifications.push(newNotification)
-        localStorage.setItem('admin_notifications', JSON.stringify(allNotifications))
-        
-        // Add to templates
-        const updatedTemplates = [...notifications, newNotification]
-        setNotifications(updatedTemplates)
-        localStorage.setItem('notification_templates', JSON.stringify(updatedTemplates))
-        message.success('Đã tạo thông báo mới')
-      }
-
-      setNotificationModalVisible(false)
-      notificationForm.resetFields()
-    } catch (error) {
-      console.error('Validation failed:', error)
-    }
-  }
-
-  const handleDeleteNotification = (id: string) => {
-    Modal.confirm({
-      title: 'Xác nhận xóa',
-      content: 'Bạn có chắc muốn xóa thông báo này?',
-      onOk: () => {
-        const updated = notifications.filter(n => n.id !== id)
-        setNotifications(updated)
-        localStorage.setItem('notification_templates', JSON.stringify(updated))
-        message.success('Đã xóa thông báo')
-      }
-    })
-  }
-
-  const notificationColumns = [
-    {
-      title: 'Tiêu đề',
-      dataIndex: 'title',
-      key: 'title',
-    },
-    {
-      title: 'Loại',
-      dataIndex: 'type',
-      key: 'type',
-      render: (type: string) => {
-        const colors: Record<string, string> = {
-          info: 'blue',
-          success: 'green',
-          warning: 'orange',
-          error: 'red'
-        }
-        const labels: Record<string, string> = {
-          info: 'Thông tin',
-          success: 'Thành công',
-          warning: 'Cảnh báo',
-          error: 'Lỗi'
-        }
-        return <Tag color={colors[type]}>{labels[type]}</Tag>
-      }
-    },
-    {
-      title: 'Ưu tiên',
-      dataIndex: 'priority',
-      key: 'priority',
-      render: (priority: string) => {
-        const colors: Record<string, string> = {
-          low: 'blue',
-          medium: 'orange',
-          high: 'red'
-        }
-        const labels: Record<string, string> = {
-          low: 'Thấp',
-          medium: 'Trung bình',
-          high: 'Cao'
-        }
-        return <Tag color={colors[priority]}>{labels[priority]}</Tag>
-      }
-    },
-    {
-      title: 'Ngày tạo',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (date: string) => dayjs(date).format('DD/MM/YYYY HH:mm')
-    },
-    {
-      title: 'Thao tác',
-      key: 'actions',
-      render: (_: any, record: NotificationTemplate) => (
-        <Space>
-          <Button size="small" onClick={() => handleEditNotification(record)}>
-            Sửa
-          </Button>
-          <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteNotification(record.id)}>
-            Xóa
-          </Button>
-        </Space>
-      )
-    }
-  ]
 
   return (
     <div style={{ padding: '24px' }}>
@@ -558,103 +398,8 @@ const SystemSettings: React.FC = () => {
               </Form.Item>
             </Form>
           </TabPane>
-
-          <TabPane
-            tab={
-              <span>
-                <BellOutlined />
-                Thông báo
-              </span>
-            }
-            key="notifications"
-          >
-            <Card
-              title="Quản lý Thông báo"
-              extra={
-                <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateNotification}>
-                  Tạo thông báo mới
-                </Button>
-              }
-            >
-              <Table
-                columns={notificationColumns}
-                dataSource={notifications}
-                rowKey="id"
-                pagination={{ pageSize: 10 }}
-                locale={{ emptyText: 'Chưa có thông báo nào' }}
-              />
-            </Card>
-          </TabPane>
         </Tabs>
       </Card>
-
-      {/* Notification Modal */}
-      <Modal
-        title={editingNotification ? 'Chỉnh sửa thông báo' : 'Tạo thông báo mới'}
-        open={notificationModalVisible}
-        onOk={handleSaveNotification}
-        onCancel={() => {
-          setNotificationModalVisible(false)
-          notificationForm.resetFields()
-          setEditingNotification(null)
-        }}
-        okText="Lưu"
-        cancelText="Hủy"
-        width={600}
-      >
-        <Form
-          form={notificationForm}
-          layout="vertical"
-        >
-          <Form.Item
-            name="title"
-            label="Tiêu đề"
-            rules={[{ required: true, message: 'Vui lòng nhập tiêu đề' }]}
-          >
-            <Input placeholder="Nhập tiêu đề thông báo" />
-          </Form.Item>
-
-          <Form.Item
-            name="message"
-            label="Nội dung"
-            rules={[{ required: true, message: 'Vui lòng nhập nội dung' }]}
-          >
-            <Input.TextArea rows={4} placeholder="Nhập nội dung thông báo" />
-          </Form.Item>
-
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="type"
-                label="Loại thông báo"
-                rules={[{ required: true, message: 'Vui lòng chọn loại' }]}
-                initialValue="info"
-              >
-                <Select>
-                  <Select.Option value="info">Thông tin</Select.Option>
-                  <Select.Option value="success">Thành công</Select.Option>
-                  <Select.Option value="warning">Cảnh báo</Select.Option>
-                  <Select.Option value="error">Lỗi</Select.Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="priority"
-                label="Mức độ ưu tiên"
-                rules={[{ required: true, message: 'Vui lòng chọn mức độ' }]}
-                initialValue="medium"
-              >
-                <Select>
-                  <Select.Option value="low">Thấp</Select.Option>
-                  <Select.Option value="medium">Trung bình</Select.Option>
-                  <Select.Option value="high">Cao</Select.Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-        </Form>
-      </Modal>
     </div>
   )
 }

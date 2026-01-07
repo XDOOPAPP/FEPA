@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, Dropdown, MenuProps } from 'antd';
+import { Button, Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import { exportToCSV, exportToJSON, exportTableToCSV } from '../utils/exportUtils';
 

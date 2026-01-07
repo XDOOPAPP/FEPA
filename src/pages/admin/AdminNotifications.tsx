@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Card, List, Space, Button, Tag, Typography, Empty, Tabs, Modal, message } from 'antd'
-import { BellOutlined, CheckCircleOutlined, InfoCircleOutlined, WarningOutlined, CloseCircleOutlined, DeleteOutlined } from '@ant-design/icons'
+import { Card, List, Space, Button, Tag, Typography, Empty, Tabs, Modal, message, Form, Input, Select } from 'antd'
+import { BellOutlined, CheckCircleOutlined, InfoCircleOutlined, WarningOutlined, CloseCircleOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/vi'
@@ -9,6 +9,7 @@ dayjs.extend(relativeTime)
 dayjs.locale('vi')
 
 const { Title, Text } = Typography
+const { TextArea } = Input
 
 interface Notification {
   id: string
@@ -23,6 +24,8 @@ interface Notification {
 const AdminNotifications: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'read'>('all')
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [form] = Form.useForm()
 
   useEffect(() => {
     loadNotifications()
@@ -33,14 +36,14 @@ const AdminNotifications: React.FC = () => {
     if (stored) {
       const allNotifications = JSON.parse(stored)
       // Filter out budget warning notifications
-      const filteredNotifications = allNotifications.filter(
-        (n: Notification) => !n.title.includes('Cảnh báo ngân sách') && !n.title.includes('vượt ngân sách')
+      const filtered = allNotifications.filter(
+        (n: Notification) => !n.title.includes('Cảnh báo ngân sách') && !n.message.includes('vượt ngân sách')
       )
-      // Update localStorage if notifications were filtered
-      if (filteredNotifications.length !== allNotifications.length) {
-        localStorage.setItem('admin_notifications', JSON.stringify(filteredNotifications))
+      // Update localStorage if filtered
+      if (filtered.length !== allNotifications.length) {
+        localStorage.setItem('admin_notifications', JSON.stringify(filtered))
       }
-      setNotifications(filteredNotifications)
+      setNotifications(filtered)
     }
   }
 
@@ -55,12 +58,14 @@ const AdminNotifications: React.FC = () => {
     )
     saveNotifications(updated)
     message.success('Đã đánh dấu là đã đọc')
+    window.dispatchEvent(new Event('notificationsUpdated'))
   }
 
   const handleMarkAllAsRead = () => {
     const updated = notifications.map(n => ({ ...n, read: true }))
     saveNotifications(updated)
     message.success('Đã đánh dấu tất cả là đã đọc')
+    window.dispatchEvent(new Event('notificationsUpdated'))
   }
 
   const handleDelete = (id: string) => {
@@ -71,6 +76,7 @@ const AdminNotifications: React.FC = () => {
         const updated = notifications.filter(n => n.id !== id)
         saveNotifications(updated)
         message.success('Đã xóa thông báo')
+        window.dispatchEvent(new Event('notificationsUpdated'))
       }
     })
   }
@@ -82,8 +88,34 @@ const AdminNotifications: React.FC = () => {
       onOk: () => {
         saveNotifications([])
         message.success('Đã xóa tất cả thông báo')
+        window.dispatchEvent(new Event('notificationsUpdated'))
       }
     })
+  }
+
+  const handleCreateNotification = async () => {
+    try {
+      const values = await form.validateFields()
+      const newNotification: Notification = {
+        id: Date.now().toString(),
+        title: values.title,
+        message: values.message,
+        type: values.type,
+        priority: values.priority,
+        read: false,
+        createdAt: new Date().toISOString(),
+      }
+      
+      saveNotifications([newNotification, ...notifications])
+      message.success('Tạo thông báo thành công!')
+      setIsCreateModalOpen(false)
+      form.resetFields()
+      
+      // Trigger reload for AdminHeader notifications
+      window.dispatchEvent(new Event('notificationsUpdated'))
+    } catch (error) {
+      console.error('Validation failed:', error)
+    }
   }
 
   const getNotificationIcon = (type: string) => {
@@ -150,6 +182,13 @@ const AdminNotifications: React.FC = () => {
         title={<Title level={3}><BellOutlined /> Thông báo quản trị</Title>}
         extra={
           <Space>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />}
+              onClick={() => setIsCreateModalOpen(true)}
+            >
+              Tạo thông báo
+            </Button>
             {unreadCount > 0 && (
               <Button onClick={handleMarkAllAsRead}>
                 Đánh dấu tất cả là đã đọc
@@ -233,6 +272,79 @@ const AdminNotifications: React.FC = () => {
           />
         )}
       </Card>
+
+      {/* Create Notification Modal */}
+      <Modal
+        title="Tạo Thông Báo Mới"
+        open={isCreateModalOpen}
+        onOk={handleCreateNotification}
+        onCancel={() => {
+          setIsCreateModalOpen(false)
+          form.resetFields()
+        }}
+        okText="Tạo"
+        cancelText="Hủy"
+        width={600}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          style={{ marginTop: '20px' }}
+        >
+          <Form.Item
+            name="title"
+            label="Tiêu đề"
+            rules={[{ required: true, message: 'Vui lòng nhập tiêu đề' }]}
+          >
+            <Input placeholder="Nhập tiêu đề thông báo" />
+          </Form.Item>
+
+          <Form.Item
+            name="message"
+            label="Nội dung"
+            rules={[{ required: true, message: 'Vui lòng nhập nội dung' }]}
+          >
+            <TextArea 
+              rows={4} 
+              placeholder="Nhập nội dung thông báo" 
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="type"
+            label="Loại thông báo"
+            rules={[{ required: true, message: 'Vui lòng chọn loại' }]}
+            initialValue="info"
+          >
+            <Select>
+              <Select.Option value="info">
+                <Space><InfoCircleOutlined style={{ color: '#1890ff' }} /> Thông tin</Space>
+              </Select.Option>
+              <Select.Option value="success">
+                <Space><CheckCircleOutlined style={{ color: '#52c41a' }} /> Thành công</Space>
+              </Select.Option>
+              <Select.Option value="warning">
+                <Space><WarningOutlined style={{ color: '#faad14' }} /> Cảnh báo</Space>
+              </Select.Option>
+              <Select.Option value="error">
+                <Space><CloseCircleOutlined style={{ color: '#ff4d4f' }} /> Lỗi</Space>
+              </Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="priority"
+            label="Độ ưu tiên"
+            initialValue="medium"
+          >
+            <Select>
+              <Select.Option value="low">Thấp</Select.Option>
+              <Select.Option value="medium">Trung bình</Select.Option>
+              <Select.Option value="high">Cao</Select.Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   )
 }

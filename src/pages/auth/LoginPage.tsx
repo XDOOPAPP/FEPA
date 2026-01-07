@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
-import { Form, Input, Button, Card, Typography, Space, message } from 'antd'
-import { UserOutlined, LockOutlined, GoogleOutlined } from '@ant-design/icons'
+import React, { useState, useEffect } from 'react'
+import { Form, Input, Button, Card, Typography, Space, message, Checkbox } from 'antd'
+import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 
 const { Title, Text } = Typography
 
@@ -15,17 +16,35 @@ const LoginPage: React.FC = () => {
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { login } = useAuth()
+
+  // Load saved credentials if "remember me" was checked
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('rememberedEmail')
+    if (savedEmail) {
+      form.setFieldsValue({ email: savedEmail, remember: true })
+    }
+  }, [form])
 
   const onFinish = async (values: LoginFormValues) => {
     try {
       setLoading(true)
-      console.log('Login values:', values)
+      
+      // Login as admin only
+      await login(values.email, values.password)
+      
+      // Handle "Remember me" checkbox
+      if (values.remember) {
+        localStorage.setItem('rememberedEmail', values.email)
+      } else {
+        localStorage.removeItem('rememberedEmail')
+      }
+      
       message.success('Đăng nhập thành công!')
-      setTimeout(() => {
-        navigate('/dashboard')
-      }, 1000)
-    } catch (error) {
-      message.error('Đăng nhập thất bại')
+      navigate('/admin/dashboard')
+    } catch (error: any) {
+      console.error('Login error:', error)
+      message.error(error.message || 'Đăng nhập thất bại')
     } finally {
       setLoading(false)
     }
@@ -37,14 +56,14 @@ const LoginPage: React.FC = () => {
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: 'linear-gradient(135deg, #5490c1ff 0%, #4d91efff 100%)',
       padding: '20px'
     }}>
       <Card style={{ width: '100%', maxWidth: '400px' }}>
         <Space direction="vertical" style={{ width: '100%' }} size="large">
           <div style={{ textAlign: 'center' }}>
-            <Title level={2} style={{ marginBottom: '8px' }}>FEPA</Title>
-            <Text type="secondary">Hệ Thống Quản Lý Chi Phí</Text>
+            <Title level={2} style={{ marginBottom: '8px' }}>FEPA Admin</Title>
+            <Text type="secondary">Hệ Thống Quản Lý</Text>
           </div>
 
           <Form
@@ -76,31 +95,25 @@ const LoginPage: React.FC = () => {
             </Form.Item>
 
             <Form.Item>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <label>
-                  <input type="checkbox" /> Ghi nhớ tôi
-                </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <Form.Item name="remember" valuePropName="checked" noStyle>
+                  <Checkbox>Ghi nhớ tôi</Checkbox>
+                </Form.Item>
                 <Link to="/forgot-password">Quên mật khẩu?</Link>
               </div>
             </Form.Item>
 
             <Form.Item>
-              <Button type="primary" htmlType="submit" block size="large" loading={loading}>
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                block 
+                size="large" 
+                loading={loading}
+              >
                 Đăng Nhập
               </Button>
             </Form.Item>
-
-            <div style={{ textAlign: 'center', margin: '16px 0' }}>
-              <Text type="secondary">HOẶC</Text>
-            </div>
-
-            <Button icon={<GoogleOutlined />} block size="large" style={{ marginBottom: '16px' }}>
-              Đăng nhập với Google
-            </Button>
-
-            <div style={{ textAlign: 'center' }}>
-              <Text>Chưa có tài khoản? <Link to="/register">Đăng ký tại đây</Link></Text>
-            </div>
           </Form>
         </Space>
       </Card>

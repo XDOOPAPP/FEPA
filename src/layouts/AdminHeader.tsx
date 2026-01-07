@@ -39,7 +39,15 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ collapsed, onCollapsedChange 
       const stored = localStorage.getItem('admin_notifications')
       if (stored) {
         const allNotifications = JSON.parse(stored)
-        const unread = allNotifications.filter((n: Notification) => !n.read)
+        // Filter out budget warning notifications
+        const filtered = allNotifications.filter(
+          (n: Notification) => !n.title.includes('Cảnh báo ngân sách') && !n.message.includes('vượt ngân sách')
+        )
+        // Update localStorage if filtered
+        if (filtered.length !== allNotifications.length) {
+          localStorage.setItem('admin_notifications', JSON.stringify(filtered))
+        }
+        const unread = filtered.filter((n: Notification) => !n.read)
         setNotifications(unread)
         setUnreadCount(unread.length)
       }
@@ -47,7 +55,15 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ collapsed, onCollapsedChange 
     
     loadNotifications()
     const interval = setInterval(loadNotifications, 30000)
-    return () => clearInterval(interval)
+    
+    // Listen for notifications updates
+    const handleNotificationsUpdate = () => loadNotifications()
+    window.addEventListener('notificationsUpdated', handleNotificationsUpdate)
+    
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('notificationsUpdated', handleNotificationsUpdate)
+    }
   }, [])
 
   const handleLogout = () => {
@@ -172,7 +188,10 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ collapsed, onCollapsedChange 
 
         <Dropdown menu={{ items: userMenuItems }} trigger={['click']} placement="bottomRight">
           <Space style={{ cursor: 'pointer' }}>
-            <Avatar src={user?.avatar} icon={<UserOutlined />} />
+            <Avatar 
+              src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&s=120" 
+              icon={<UserOutlined />} 
+            />
             <Text>{user?.fullName || 'Admin'}</Text>
           </Space>
         </Dropdown>

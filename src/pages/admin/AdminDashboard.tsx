@@ -154,6 +154,14 @@ const AdminDashboard: React.FC = () => {
         type: 'register'
       },
       {
+        id: '3',
+        user: 'Lê Văn C',
+        action: 'Vượt ngân sách',
+        amount: '2,500,000đ',
+        time: dayjs().subtract(2, 'hour').fromNow(),
+        type: 'warning'
+      },
+      {
         id: '4',
         user: 'Phạm Thị D',
         action: 'Thanh toán đăng ký Premium',

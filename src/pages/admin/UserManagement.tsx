@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { Card, Table, Button, Space, Modal, Form, Input, Select, Tag, message, Popconfirm, Typography } from 'antd'
+import { Card, Table, Button, Space, Modal, Form, Input, Select, Tag, message, Popconfirm, Typography, Checkbox } from 'antd'
 import { UserOutlined, PlusOutlined, EditOutlined, DeleteOutlined, LockOutlined, UnlockOutlined, KeyOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
+import { useBulkActions } from '../../hooks/useBulkActions'
+import { BulkActionsBar, commonBulkActions } from '../../components/BulkActionsBar'
+import { exportToCSV } from '../../utils/exportUtils'
+import { SkeletonTable } from '../../components/SkeletonLoader'
 
 const { Title } = Typography
 
@@ -21,29 +25,51 @@ const UserManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [form] = Form.useForm()
+  const [loading, setLoading] = useState(true)
+
+  // Bulk actions
+  const {
+    selectedIds,
+    selectedItems,
+    isAllSelected,
+    isSomeSelected,
+    toggleItem,
+    toggleAll,
+    deselectAll,
+    isSelected,
+  } = useBulkActions({
+    items: users,
+    getItemId: (user) => user.id,
+  })
 
   useEffect(() => {
     loadUsers()
   }, [])
 
   const loadUsers = () => {
-    // Load users from localStorage (created by initDemoData)
-    const stored = localStorage.getItem('all_users')
-    
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setUsers(parsed)
-          return
+    setLoading(true)
+    // Simulate API call delay
+    setTimeout(() => {
+      // Load users from localStorage (created by initDemoData)
+      const stored = localStorage.getItem('all_users')
+      
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setUsers(parsed)
+            setLoading(false)
+            return
+          }
+        } catch (error) {
+          console.error('Error loading users:', error)
         }
-      } catch (error) {
-        console.error('Error loading users:', error)
       }
-    }
-    
-    // If no users found, set empty array (initDemoData will create them on next reload)
-    setUsers([])
+      
+      // If no users found, set empty array (initDemoData will create them on next reload)
+      setUsers([])
+      setLoading(false)
+    }, 800)
   }
 
   const saveUsers = (updatedUsers: User[]) => {
@@ -144,7 +170,46 @@ const UserManagement: React.FC = () => {
     })
   }
 
+  // Bulk actions handlers
+  const handleBulkDelete = () => {
+    const remaining = users.filter(u => !selectedIds.has(u.id))
+    saveUsers(remaining)
+    deselectAll()
+    message.success(`Đã xóa ${selectedIds.size} người dùng`)
+  }
+
+  const handleBulkExport = () => {
+    const dataToExport = selectedItems.map(user => ({
+      Email: user.email,
+      'Họ tên': user.fullName,
+      'Số điện thoại': user.phone || '',
+      'Vai trò': user.role === 'admin' ? 'Admin' : 'User',
+      'Trạng thái': user.status === 'active' ? 'Hoạt động' : 'Đã khóa',
+      'Ngày tạo': dayjs(user.createdAt).format('DD/MM/YYYY HH:mm'),
+      'Đăng nhập cuối': dayjs(user.lastLogin).format('DD/MM/YYYY HH:mm'),
+    }))
+    exportToCSV(dataToExport, { filename: 'users-export' })
+    message.success(`Đã export ${selectedIds.size} người dùng`)
+  }
+
   const columns = [
+    {
+      title: (
+        <Checkbox
+          checked={isAllSelected}
+          indeterminate={isSomeSelected}
+          onChange={toggleAll}
+        />
+      ),
+      key: 'checkbox',
+      width: 50,
+      render: (_: any, record: User) => (
+        <Checkbox
+          checked={isSelected(record.id)}
+          onChange={() => toggleItem(record.id)}
+        />
+      ),
+    },
     {
       title: 'Email',
       dataIndex: 'email',
@@ -287,18 +352,30 @@ const UserManagement: React.FC = () => {
           </Space>
         }
       >
-        <Table
-          columns={columns}
-          dataSource={users}
-          rowKey="id"
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showTotal: (total) => `Tổng ${total} người dùng`
-          }}
-          scroll={{ x: 1200 }}
-        />
+        <SkeletonTable rows={5} loading={loading}>
+          <Table
+            columns={columns}
+            dataSource={users}
+            rowKey="id"
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total) => `Tổng ${total} người dùng`
+            }}
+            scroll={{ x: 1200 }}
+          />
+        </SkeletonTable>
       </Card>
+
+      {/* Bulk Actions Bar */}
+      <BulkActionsBar
+        selectedCount={selectedIds.size}
+        onClearSelection={deselectAll}
+        actions={[
+          commonBulkActions.delete(handleBulkDelete),
+          commonBulkActions.export(handleBulkExport),
+        ]}
+      />
 
       <Modal
         title={editingUser ? 'Sửa người dùng' : 'Thêm người dùng mới'}
