@@ -1,0 +1,10 @@
+.auth-layout {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.auth-container {
+  background: white;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}

@@ -1,0 +1,157 @@
+import React from 'react'
+import { Layout, Menu } from 'antd'
+import { 
+  DashboardOutlined, 
+  UserOutlined, 
+  ShoppingOutlined, 
+  FileTextOutlined, 
+  BellOutlined, 
+  SettingOutlined,
+  TeamOutlined,
+  CrownOutlined,
+  ReadOutlined,
+  ControlOutlined
+} from '@ant-design/icons'
+import { useNavigate, useLocation } from 'react-router-dom'
+import './Sidebar.css'
+
+const { Sider } = Layout
+
+interface AdminSidebarProps {
+  collapsed: boolean
+}
+
+const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const menuItems = [
+    {
+      key: '/admin/dashboard',
+      icon: <DashboardOutlined />,
+      label: 'Dashboard',
+      onClick: () => navigate('/admin/dashboard')
+    },
+    {
+      key: '/admin/users',
+      icon: <TeamOutlined />,
+      label: 'User Management',
+      onClick: () => navigate('/admin/users')
+    },
+    {
+      key: 'core',
+      icon: <ShoppingOutlined />,
+      label: 'Core Management',
+      children: [
+        {
+          key: '/admin/expenses',
+          label: 'Expenses',
+          onClick: () => navigate('/admin/expenses')
+        },
+        {
+          key: '/admin/budgets',
+          label: 'Budgets',
+          onClick: () => navigate('/admin/budgets')
+        },
+        {
+          key: '/admin/categories',
+          label: 'Categories',
+          onClick: () => navigate('/admin/categories')
+        }
+      ]
+    },
+    {
+      key: '/admin/reports',
+      icon: <FileTextOutlined />,
+      label: 'Reports',
+      onClick: () => navigate('/admin/reports')
+    },
+    {
+      key: '/admin/subscription',
+      icon: <CrownOutlined />,
+      label: 'Subscription',
+      onClick: () => navigate('/admin/subscription')
+    },
+    {
+      key: 'content',
+      icon: <ReadOutlined />,
+      label: 'Content Management',
+      children: [
+        {
+          key: '/admin/blogs',
+          label: 'Blogs',
+          onClick: () => navigate('/admin/blogs')
+        },
+        {
+          key: '/admin/ads',
+          label: 'Advertisements',
+          onClick: () => navigate('/admin/ads')
+        },
+        {
+          key: '/admin/partners',
+          label: 'Partner Portal',
+          onClick: () => navigate('/admin/partners')
+        }
+      ]
+    },
+    {
+      key: 'system',
+      icon: <ControlOutlined />,
+      label: 'System',
+      children: [
+        {
+          key: '/admin/system-settings',
+          label: 'Settings',
+          onClick: () => navigate('/admin/system-settings')
+        },
+        {
+          key: '/admin/system-health',
+          label: 'Health Monitor',
+          onClick: () => navigate('/admin/system-health')
+        }
+      ]
+    },
+    {
+      key: '/admin/notifications',
+      icon: <BellOutlined />,
+      label: 'Notifications',
+      onClick: () => navigate('/admin/notifications')
+    },
+    {
+      key: '/admin/profile',
+      icon: <UserOutlined />,
+      label: 'Profile',
+      onClick: () => navigate('/admin/profile')
+    },
+    {
+      key: '/admin/settings',
+      icon: <SettingOutlined />,
+      label: 'Account Settings',
+      onClick: () => navigate('/admin/settings')
+    }
+  ]
+
+  return (
+    <Sider
+      collapsible
+      collapsed={collapsed}
+      width={200}
+      theme="dark"
+      className="sidebar"
+      trigger={null}
+      style={{ position: 'fixed', height: '100vh', left: 0 }}
+    >
+      <div style={{ padding: '16px', textAlign: 'center', color: '#fff', fontWeight: 'bold' }}>
+        {!collapsed && 'FEPA'}
+      </div>
+      <Menu
+        theme="dark"
+        mode="inline"
+        selectedKeys={[location.pathname]}
+        items={menuItems}
+      />
+    </Sider>
+  )
+}
+
+export default AdminSidebar
