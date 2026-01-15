@@ -1,8 +1,9 @@
 import axios from 'axios'
 import type { AxiosError, InternalAxiosRequestConfig } from 'axios'
+import { API_CONFIG } from '../../config/api.config'
 
-// Base URL trỏ đến auth-service backend
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'
+// Base URL từ config tập trung
+const API_BASE_URL = API_CONFIG.BASE_URL
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -38,11 +39,10 @@ axiosInstance.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem('refreshToken')
-        
+
         if (!refreshToken) {
-          // Không có refresh token -> logout
+          // Không có refresh token -> clear storage and reject (avoid full-page redirect)
           localStorage.clear()
-          window.location.href = '/login'
           return Promise.reject(error)
         }
 
@@ -61,9 +61,8 @@ axiosInstance.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${accessToken}`
         return axiosInstance(originalRequest)
       } catch (refreshError) {
-        // Refresh thất bại -> logout
+        // Refresh thất bại -> clear storage and reject (avoid full-page redirect)
         localStorage.clear()
-        window.location.href = '/login'
         return Promise.reject(refreshError)
       }
     }

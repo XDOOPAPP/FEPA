@@ -4,4 +4,5 @@
  */
 
 export { default as axiosInstance } from './axiosInstance';
-export * from './authAPI';
+export { default as authAPI } from './authAPI';
+export { default as subscriptionAPI } from './subscriptionAPI';

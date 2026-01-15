@@ -4,7 +4,6 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 import { AuthProvider } from './context/AuthContext'
 import { queryClient } from './services/queryClient'
-import { initAllDemoData } from './utils/initDemoData'
 import AdminRoute from './components/AdminRoute'
 import RootRedirect from './components/RootRedirect'
 import AdminLayout from './layouts/AdminLayout/AdminLayout'
@@ -36,11 +35,6 @@ const themeConfig = {
 }
 
 function App() {
-  // Initialize demo data on app load
-  React.useEffect(() => {
-    initAllDemoData()
-  }, [])
-
   return (
     <QueryClientProvider client={queryClient}>
       <ConfigProvider theme={themeConfig}>

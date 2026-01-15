@@ -1,4 +1,5 @@
 import axiosInstance from './axiosInstance'
+import { API_CONFIG } from '../../config/api.config'
 
 // ========== REQUEST TYPES ==========
 export interface LoginRequest {
@@ -50,7 +51,8 @@ const authAPI = {
    * Trả về accessToken, refreshToken và thông tin user
    */
   login: async (data: LoginRequest): Promise<AuthResponse> => {
-    return axiosInstance.post('/auth/login', data)
+    const res = await axiosInstance.post<AuthResponse>(API_CONFIG.AUTH.LOGIN, data)
+    return res
   },
 
   /**
@@ -58,42 +60,42 @@ const authAPI = {
    * Backend sẽ tự động gửi OTP qua email
    */
   register: async (data: RegisterRequest): Promise<any> => {
-    return axiosInstance.post('/auth/register', data)
+    return axiosInstance.post(API_CONFIG.AUTH.REGISTER, data)
   },
 
   /**
    * Xác thực OTP sau khi đăng ký - POST /auth/verify-otp
    */
   verifyOtp: async (data: VerifyOtpRequest): Promise<any> => {
-    return axiosInstance.post('/auth/verify-otp', data)
+    return axiosInstance.post(API_CONFIG.AUTH.VERIFY_OTP, data)
   },
 
   /**
    * Gửi OTP để reset password - POST /auth/forgot-password
    */
   forgotPassword: async (data: ForgotPasswordRequest): Promise<any> => {
-    return axiosInstance.post('/auth/forgot-password', data)
+    return axiosInstance.post(API_CONFIG.AUTH.FORGOT_PASSWORD, data)
   },
 
   /**
    * Reset password với OTP - POST /auth/reset-password
    */
   resetPassword: async (data: ResetPasswordRequest): Promise<any> => {
-    return axiosInstance.post('/auth/reset-password', data)
+    return axiosInstance.post(API_CONFIG.AUTH.RESET_PASSWORD, data)
   },
 
   /**
    * Verify token - POST /auth/verify
    */
   verifyToken: async (): Promise<any> => {
-    return axiosInstance.post('/auth/verify')
+    return axiosInstance.post(API_CONFIG.AUTH.VERIFY)
   },
 
   /**
    * Lấy thông tin user hiện tại - GET /auth/me
    */
   getCurrentUser: async (): Promise<any> => {
-    return axiosInstance.get('/auth/me')
+    return axiosInstance.get(API_CONFIG.AUTH.ME)
   },
 
   /**

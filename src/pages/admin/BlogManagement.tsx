@@ -7,32 +7,17 @@ import { useBulkActions } from '../../hooks/useBulkActions'
 import { BulkActionsBar, commonBulkActions } from '../../components/BulkActionsBar'
 import { exportToCSV } from '../../utils/exportUtils'
 import { RichTextEditor } from '../../components/RichTextEditor'
+import { blogService, type Blog } from '../../services/blogService'
 
 const { TextArea } = Input
 
-interface BlogPost {
-  id: string
-  title: string
-  slug: string
-  excerpt: string
-  content: string
-  author: string
-  category: string
-  tags: string[]
-  status: 'draft' | 'published' | 'archived'
-  featuredImage: string
-  views: number
-  createdAt: string
-  updatedAt: string
-  publishedAt?: string
-}
-
 const BlogManagement: React.FC = () => {
-  const [posts, setPosts] = useState<BlogPost[]>([])
+  const [posts, setPosts] = useState<Blog[]>([])
   const [isModalVisible, setIsModalVisible] = useState(false)
-  const [editingPost, setEditingPost] = useState<BlogPost | null>(null)
+  const [editingPost, setEditingPost] = useState<Blog | null>(null)
   const [form] = Form.useForm()
   const [content, setContent] = useState('')
+  const [loading, setLoading] = useState(false)
 
   // Bulk actions
   const {
@@ -51,67 +36,24 @@ const BlogManagement: React.FC = () => {
 
   // API: GET /api/blogs
   useEffect(() => {
-    const storedPosts = localStorage.getItem('blog_posts')
-    if (storedPosts) {
-      setPosts(JSON.parse(storedPosts))
-    } else {
-      const initialPosts: BlogPost[] = [
-        {
-          id: '1',
-          title: '10 Mẹo Tiết Kiệm Chi Tiêu Hàng Ngày',
-          slug: '10-meo-tiet-kiem-chi-tieu-hang-ngay',
-          excerpt: 'Khám phá những cách đơn giản để giảm chi tiêu mỗi ngày...',
-          content: '<h2>Giới thiệu</h2><p>Trong thời đại hiện nay, việc quản lý chi tiêu cá nhân ngày càng trở nên quan trọng...</p>',
-          author: 'Admin',
-          category: 'Tài chính cá nhân',
-          tags: ['tiết kiệm', 'chi tiêu', 'mẹo hay'],
-          status: 'published',
-          featuredImage: 'https://via.placeholder.com/800x400',
-          views: 1250,
-          createdAt: dayjs().subtract(5, 'day').toISOString(),
-          updatedAt: dayjs().subtract(5, 'day').toISOString(),
-          publishedAt: dayjs().subtract(5, 'day').toISOString(),
-        },
-        {
-          id: '2',
-          title: 'Cách Lập Kế Hoạch Tài Chính Cho Năm 2025',
-          slug: 'cach-lap-ke-hoach-tai-chinh-cho-nam-2025',
-          excerpt: 'Hướng dẫn chi tiết cách lập kế hoạch tài chính hiệu quả...',
-          content: '<h2>Bước 1: Đánh giá tình hình hiện tại</h2><p>Trước tiên, bạn cần xem xét...</p>',
-          author: 'Admin',
-          category: 'Kế hoạch tài chính',
-          tags: ['kế hoạch', 'tài chính', '2025'],
-          status: 'published',
-          featuredImage: 'https://via.placeholder.com/800x400',
-          views: 850,
-          createdAt: dayjs().subtract(3, 'day').toISOString(),
-          updatedAt: dayjs().subtract(3, 'day').toISOString(),
-          publishedAt: dayjs().subtract(3, 'day').toISOString(),
-        },
-        {
-          id: '3',
-          title: 'Hướng Dẫn Sử Dụng Tính Năng OCR',
-          slug: 'huong-dan-su-dung-tinh-nang-ocr',
-          excerpt: 'Quét hóa đơn tự động với công nghệ OCR...',
-          content: '<h2>OCR là gì?</h2><p>OCR (Optical Character Recognition) là công nghệ...</p>',
-          author: 'Admin',
-          category: 'Hướng dẫn',
-          tags: ['OCR', 'hướng dẫn', 'công nghệ'],
-          status: 'draft',
-          featuredImage: 'https://via.placeholder.com/800x400',
-          views: 0,
-          createdAt: dayjs().subtract(1, 'day').toISOString(),
-          updatedAt: dayjs().subtract(1, 'day').toISOString(),
-        },
-      ]
-      setPosts(initialPosts)
-      localStorage.setItem('blog_posts', JSON.stringify(initialPosts))
-    }
+    loadBlogs()
   }, [])
 
-  const savePosts = (newPosts: BlogPost[]) => {
-    setPosts(newPosts)
-    localStorage.setItem('blog_posts', JSON.stringify(newPosts))
+  const loadBlogs = async () => {
+    try {
+      setLoading(true)
+      const data = await blogService.getAll()
+      setPosts(data)
+    } catch (error) {
+      console.error('Failed to load blogs:', error)
+      // Fallback to localStorage if API fails
+      const storedPosts = localStorage.getItem('blog_posts')
+      if (storedPosts) {
+        setPosts(JSON.parse(storedPosts))
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleAdd = () => {
@@ -121,28 +63,32 @@ const BlogManagement: React.FC = () => {
     setIsModalVisible(true)
   }
 
-  const handleEdit = (post: BlogPost) => {
+  const handleEdit = (post: Blog) => {
     setEditingPost(post)
     form.setFieldsValue({
       ...post,
-      tags: post.tags.join(', '),
+      tags: post.tags?.join(', ') || '',
     })
     setContent(post.content)
     setIsModalVisible(true)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     Modal.confirm({
       title: 'Xác nhận xóa',
       content: 'Bạn có chắc chắn muốn xóa bài viết này?',
       okText: 'Xóa',
       cancelText: 'Hủy',
       okButtonProps: { danger: true },
-      onOk: () => {
-        // API: DELETE /api/blogs/:id
-        const newPosts = posts.filter(p => p.id !== id)
-        savePosts(newPosts)
-        message.success('Đã xóa bài viết')
+      onOk: async () => {
+        try {
+          // API: DELETE /api/blogs/:id
+          await blogService.delete(id)
+          message.success('Đã xóa bài viết')
+          loadBlogs() // Reload list
+        } catch (error) {
+          console.error('Failed to delete blog:', error)
+        }
       },
     })
   }
@@ -150,72 +96,67 @@ const BlogManagement: React.FC = () => {
   const handleSave = async () => {
     try {
       const values = await form.validateFields()
-      const tags = values.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t)
+      const tags = values.tags ? values.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t) : []
       
+      setLoading(true)
       if (editingPost) {
-        // API: PUT /api/blogs/:id
-        const newPosts = posts.map(p =>
-          p.id === editingPost.id
-            ? {
-                ...p,
-                ...values,
-                content,
-                tags,
-                updatedAt: dayjs().toISOString(),
-                publishedAt: values.status === 'published' && !p.publishedAt ? dayjs().toISOString() : p.publishedAt,
-              }
-            : p
-        )
-        savePosts(newPosts)
-        message.success('Cập nhật bài viết thành công')
-      } else {
-        // API: POST /api/blogs
-        const newPost: BlogPost = {
-          id: Date.now().toString(),
+        // API: PATCH /api/blogs/:id
+        await blogService.update(editingPost.id, {
           ...values,
           content,
           tags,
-          author: 'Admin',
-          views: 0,
-          createdAt: dayjs().toISOString(),
-          updatedAt: dayjs().toISOString(),
-          publishedAt: values.status === 'published' ? dayjs().toISOString() : undefined,
-        }
-        savePosts([...posts, newPost])
+        })
+        message.success('Cập nhật bài viết thành công')
+      } else {
+        // API: POST /api/blogs
+        await blogService.create({
+          ...values,
+          content,
+          tags,
+        })
         message.success('Thêm bài viết thành công')
       }
       
       setIsModalVisible(false)
       form.resetFields()
       setContent('')
+      loadBlogs() // Reload list
     } catch (error) {
-      console.error('Validation failed:', error)
+      console.error('Failed to save blog:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
   // Bulk actions handlers
-  const handleBulkDelete = () => {
-    const remaining = posts.filter(p => !selectedIds.has(p.id))
-    savePosts(remaining)
-    deselectAll()
-    message.success(`Đã xóa ${selectedIds.size} bài viết`)
+  const handleBulkDelete = async () => {
+    try {
+      setLoading(true)
+      await blogService.bulkDelete(Array.from(selectedIds).map(String))
+      deselectAll()
+      message.success(`Đã xóa ${selectedIds.size} bài viết`)
+      loadBlogs() // Reload list
+    } catch (error) {
+      console.error('Failed to bulk delete:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleBulkExport = () => {
     const dataToExport = selectedItems.map(post => ({
       'Tiêu đề': post.title,
       'Slug': post.slug,
-      'Danh mục': post.category,
-      'Tags': post.tags.join(', '),
+      'Tags': post.tags?.join(', ') || '',
       'Trạng thái': post.status === 'published' ? 'Đã đăng' : post.status === 'draft' ? 'Nháp' : 'Lưu trữ',
-      'Lượt xem': post.views,
+      'Lượt xem': post.viewCount || 0,
       'Ngày tạo': dayjs(post.createdAt).format('DD/MM/YYYY HH:mm'),
     }))
     exportToCSV(dataToExport, { filename: 'blog-posts-export' })
     message.success(`Đã export ${selectedIds.size} bài viết`)
   }
 
-  const columns: ColumnsType<BlogPost> = [
+  const columns: ColumnsType<Blog> = [
     {
       title: (
         <Checkbox
@@ -226,7 +167,7 @@ const BlogManagement: React.FC = () => {
       ),
       key: 'checkbox',
       width: 50,
-      render: (_: any, record: BlogPost) => (
+      render: (_: any, record: Blog) => (
         <Checkbox
           checked={isSelected(record.id)}
           onChange={() => toggleItem(record.id)}
@@ -254,7 +195,7 @@ const BlogManagement: React.FC = () => {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      render: (status: BlogPost['status']) => {
+      render: (status: Blog['status']) => {
         const statusMap = {
           draft: { color: 'default', text: 'Nháp' },
           published: { color: 'success', text: 'Đã đăng' },
@@ -272,9 +213,9 @@ const BlogManagement: React.FC = () => {
     },
     {
       title: 'Lượt xem',
-      dataIndex: 'views',
-      key: 'views',
-      sorter: (a, b) => a.views - b.views,
+      dataIndex: 'viewCount',
+      key: 'viewCount',
+      sorter: (a, b) => (a.viewCount || 0) - (b.viewCount || 0),
     },
     {
       title: 'Ngày tạo',
@@ -304,7 +245,7 @@ const BlogManagement: React.FC = () => {
     total: posts.length,
     published: posts.filter(p => p.status === 'published').length,
     draft: posts.filter(p => p.status === 'draft').length,
-    totalViews: posts.reduce((sum, p) => sum + p.views, 0),
+    totalViews: posts.reduce((sum, p) => sum + (p.viewCount || 0), 0),
   }
 
   return (
@@ -361,6 +302,7 @@ const BlogManagement: React.FC = () => {
           dataSource={posts}
           rowKey="id"
           pagination={{ pageSize: 10 }}
+          loading={loading}
         />
       </Card>
 

@@ -1,33 +1,27 @@
 import React, { useState, useEffect } from 'react'
-import { Card, Table, Button, Space, Modal, Form, Input, InputNumber, Tag, Switch, message, Row, Col, Statistic } from 'antd'
-import { CrownOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
+import { Card, Table, Button, Space, Modal, Form, Input, InputNumber, Tag, Switch, message, Row, Col, Statistic, Spin } from 'antd'
+import { CrownOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
+import subscriptionAPI from '../../services/api/subscriptionAPI'
+import type { SubscriptionPlan as APIPlan, UserSubscription as APISubscription } from '../../services/api/subscriptionAPI'
 
 const { TextArea } = Input
 
-interface SubscriptionPlan {
-  id: string
-  name: string
-  price: number
-  duration: number
-  features: string[]
-  isActive: boolean
-  maxExpenses: number
-  maxCategories: number
-  ocrScans: number
+interface SubscriptionPlan extends APIPlan {
+  id: string // Alias cho _id
 }
 
 interface UserSubscription {
   id: string
   userId: string
-  userName: string
-  userEmail: string
+  userName?: string
+  userEmail?: string
   planId: string
   planName: string
   startDate: string
   endDate: string
-  status: 'active' | 'expired' | 'cancelled'
+  status: 'PENDING' | 'ACTIVE' | 'CANCELLED' | 'EXPIRED'
   autoRenew: boolean
 }
 
@@ -36,110 +30,43 @@ const AdminSubscription: React.FC = () => {
   const [subscriptions, setSubscriptions] = useState<UserSubscription[]>([])
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [form] = Form.useForm()
 
   useEffect(() => {
-    // Load plans
-    const storedPlans = localStorage.getItem('subscription_plans')
-    if (storedPlans) {
-      setPlans(JSON.parse(storedPlans))
-    } else {
-      const initialPlans: SubscriptionPlan[] = [
-        {
-          id: '1',
-          name: 'Free',
-          price: 0,
-          duration: 365,
-          features: ['5 danh mục', '50 giao dịch/tháng', 'Báo cáo cơ bản'],
-          isActive: true,
-          maxExpenses: 50,
-          maxCategories: 5,
-          ocrScans: 10,
-        },
-        {
-          id: '2',
-          name: 'Basic',
-          price: 99000,
-          duration: 30,
-          features: ['20 danh mục', '500 giao dịch/tháng', 'OCR 50 lần/tháng', 'Báo cáo chi tiết'],
-          isActive: true,
-          maxExpenses: 500,
-          maxCategories: 20,
-          ocrScans: 50,
-        },
-        {
-          id: '3',
-          name: 'Premium',
-          price: 199000,
-          duration: 30,
-          features: ['Không giới hạn danh mục', 'Không giới hạn giao dịch', 'OCR không giới hạn', 'Báo cáo nâng cao', 'Hỗ trợ ưu tiên'],
-          isActive: true,
-          maxExpenses: -1,
-          maxCategories: -1,
-          ocrScans: -1,
-        },
-      ]
-      setPlans(initialPlans)
-      localStorage.setItem('subscription_plans', JSON.stringify(initialPlans))
-    }
-
-    // Load subscriptions
-    const storedSubscriptions = localStorage.getItem('user_subscriptions')
-    if (storedSubscriptions) {
-      setSubscriptions(JSON.parse(storedSubscriptions))
-    } else {
-      const initialSubscriptions: UserSubscription[] = [
-        {
-          id: '1',
-          userId: 'u1',
-          userName: 'Nguyễn Văn A',
-          userEmail: 'nguyenvana@email.com',
-          planId: '2',
-          planName: 'Basic',
-          startDate: dayjs().subtract(15, 'day').toISOString(),
-          endDate: dayjs().add(15, 'day').toISOString(),
-          status: 'active',
-          autoRenew: true,
-        },
-        {
-          id: '2',
-          userId: 'u2',
-          userName: 'Trần Thị B',
-          userEmail: 'tranthib@email.com',
-          planId: '3',
-          planName: 'Premium',
-          startDate: dayjs().subtract(10, 'day').toISOString(),
-          endDate: dayjs().add(20, 'day').toISOString(),
-          status: 'active',
-          autoRenew: true,
-        },
-        {
-          id: '3',
-          userId: 'u3',
-          userName: 'Lê Văn C',
-          userEmail: 'levanc@email.com',
-          planId: '2',
-          planName: 'Basic',
-          startDate: dayjs().subtract(60, 'day').toISOString(),
-          endDate: dayjs().subtract(30, 'day').toISOString(),
-          status: 'expired',
-          autoRenew: false,
-        },
-      ]
-      setSubscriptions(initialSubscriptions)
-      localStorage.setItem('user_subscriptions', JSON.stringify(initialSubscriptions))
-    }
+    loadData()
   }, [])
 
-  const savePlans = (newPlans: SubscriptionPlan[]) => {
+  const loadData = async () => {
+    try {
+      setIsLoading(true)
+      // Load plans từ API
+      const plansData = await subscriptionAPI.getPlans()
+      const mappedPlans = plansData.map((plan: APIPlan) => ({
+        ...plan,
+        id: plan._id,
+      }))
+      setPlans(mappedPlans)
+
+      // Không có endpoint để lấy tất cả subscriptions, nên để trống
+      setSubscriptions([])
+    } catch (error) {
+      console.error('Failed to load data:', error)
+      message.error('Không thể tải dữ liệu từ server')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const savePlans = async (newPlans: SubscriptionPlan[]) => {
     setPlans(newPlans)
-    localStorage.setItem('subscription_plans', JSON.stringify(newPlans))
   }
 
   const handleAddPlan = () => {
     setEditingPlan(null)
     form.resetFields()
-    form.setFieldsValue({ isActive: true, duration: 30 })
+    form.setFieldsValue({ isActive: true, interval: 'MONTHLY' })
     setIsModalVisible(true)
   }
 
@@ -159,10 +86,19 @@ const AdminSubscription: React.FC = () => {
       okText: 'Xóa',
       cancelText: 'Hủy',
       okButtonProps: { danger: true },
-      onOk: () => {
-        const newPlans = plans.filter(p => p.id !== planId)
-        savePlans(newPlans)
-        message.success('Đã xóa gói dịch vụ')
+      onOk: async () => {
+        try {
+          setIsSaving(true)
+          await subscriptionAPI.disablePlan(planId)
+          const newPlans = plans.filter(p => p.id !== planId)
+          savePlans(newPlans)
+          message.success('Đã xóa gói dịch vụ')
+        } catch (error) {
+          console.error('Failed to delete plan:', error)
+          message.error('Không thể xóa gói dịch vụ')
+        } finally {
+          setIsSaving(false)
+        }
       },
     })
   }
@@ -172,7 +108,14 @@ const AdminSubscription: React.FC = () => {
       const values = await form.validateFields()
       const features = values.features.split('\n').filter((f: string) => f.trim())
       
+      setIsSaving(true)
+      
       if (editingPlan) {
+        // Update plan
+        await subscriptionAPI.updatePlan(editingPlan.id, {
+          ...values,
+          features,
+        })
         const newPlans = plans.map(p =>
           p.id === editingPlan.id
             ? { ...p, ...values, features }
@@ -181,10 +124,14 @@ const AdminSubscription: React.FC = () => {
         savePlans(newPlans)
         message.success('Cập nhật gói thành công')
       } else {
-        const newPlan: SubscriptionPlan = {
-          id: Date.now().toString(),
+        // Create new plan
+        const result = await subscriptionAPI.createPlan({
           ...values,
           features,
+        })
+        const newPlan: SubscriptionPlan = {
+          ...result,
+          id: result._id,
         }
         savePlans([...plans, newPlan])
         message.success('Thêm gói thành công')
@@ -193,7 +140,10 @@ const AdminSubscription: React.FC = () => {
       setIsModalVisible(false)
       form.resetFields()
     } catch (error) {
-      console.error('Validation failed:', error)
+      console.error('Error saving plan:', error)
+      message.error('Không thể lưu gói dịch vụ')
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -219,21 +169,17 @@ const AdminSubscription: React.FC = () => {
       sorter: (a, b) => a.price - b.price,
     },
     {
-      title: 'Thời hạn',
-      dataIndex: 'duration',
-      key: 'duration',
-      render: (duration) => `${duration} ngày`,
-    },
-    {
-      title: 'Giới hạn',
-      key: 'limits',
-      render: (_, record) => (
-        <Space direction="vertical" size={0}>
-          <Text>Giao dịch: {record.maxExpenses === -1 ? 'Không giới hạn' : record.maxExpenses}</Text>
-          <Text>Danh mục: {record.maxCategories === -1 ? 'Không giới hạn' : record.maxCategories}</Text>
-          <Text>OCR: {record.ocrScans === -1 ? 'Không giới hạn' : record.ocrScans}</Text>
-        </Space>
-      ),
+      title: 'Chu kỳ',
+      dataIndex: 'interval',
+      key: 'interval',
+      render: (interval) => {
+        const intervalMap = {
+          MONTHLY: 'Hàng tháng',
+          YEARLY: 'Hàng năm',
+          LIFETIME: 'Trọn đời',
+        }
+        return intervalMap[interval as keyof typeof intervalMap]
+      },
     },
     {
       title: 'Trạng thái',
@@ -256,10 +202,10 @@ const AdminSubscription: React.FC = () => {
       width: 150,
       render: (_, record) => (
         <Space>
-          <Button type="link" icon={<EditOutlined />} onClick={() => handleEditPlan(record)}>
+          <Button type="link" icon={<EditOutlined />} onClick={() => handleEditPlan(record)} disabled={isSaving}>
             Sửa
           </Button>
-          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeletePlan(record.id)}>
+          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeletePlan(record.id)} disabled={isSaving}>
             Xóa
           </Button>
         </Space>
@@ -273,8 +219,8 @@ const AdminSubscription: React.FC = () => {
       key: 'user',
       render: (_, record) => (
         <Space direction="vertical" size={0}>
-          <strong>{record.userName}</strong>
-          <span style={{ fontSize: '12px', color: '#666' }}>{record.userEmail}</span>
+          <strong>{record.userId}</strong>
+          {record.userEmail && <span style={{ fontSize: '12px', color: '#666' }}>{record.userEmail}</span>}
         </Space>
       ),
     },
@@ -302,17 +248,18 @@ const AdminSubscription: React.FC = () => {
       key: 'status',
       render: (status: UserSubscription['status']) => {
         const statusMap = {
-          active: { color: 'success', text: 'Đang hoạt động', icon: <CheckCircleOutlined /> },
-          expired: { color: 'default', text: 'Hết hạn', icon: <CloseCircleOutlined /> },
-          cancelled: { color: 'error', text: 'Đã hủy', icon: <CloseCircleOutlined /> },
+          ACTIVE: { color: 'success', text: 'Đang hoạt động', icon: <CheckCircleOutlined /> },
+          PENDING: { color: 'processing', text: 'Chờ xử lý', icon: <LoadingOutlined /> },
+          EXPIRED: { color: 'default', text: 'Hết hạn', icon: <CloseCircleOutlined /> },
+          CANCELLED: { color: 'error', text: 'Đã hủy', icon: <CloseCircleOutlined /> },
         }
-        const { color, text, icon } = statusMap[status]
-        return <Tag color={color} icon={icon}>{text}</Tag>
+        const config = statusMap[status]
+        return <Tag color={config.color} icon={config.icon}>{config.text}</Tag>
       },
       filters: [
-        { text: 'Đang hoạt động', value: 'active' },
-        { text: 'Hết hạn', value: 'expired' },
-        { text: 'Đã hủy', value: 'cancelled' },
+        { text: 'Đang hoạt động', value: 'ACTIVE' },
+        { text: 'Hết hạn', value: 'EXPIRED' },
+        { text: 'Đã hủy', value: 'CANCELLED' },
       ],
       onFilter: (value, record) => record.status === value,
     },
@@ -332,9 +279,9 @@ const AdminSubscription: React.FC = () => {
     totalPlans: plans.length,
     activePlans: plans.filter(p => p.isActive).length,
     totalSubscriptions: subscriptions.length,
-    activeSubscriptions: subscriptions.filter(s => s.status === 'active').length,
+    activeSubscriptions: subscriptions.filter(s => s.status === 'ACTIVE').length,
     revenue: subscriptions
-      .filter(s => s.status === 'active')
+      .filter(s => s.status === 'ACTIVE')
       .reduce((sum, s) => {
         const plan = plans.find(p => p.id === s.planId)
         return sum + (plan?.price || 0)
@@ -342,169 +289,146 @@ const AdminSubscription: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: '24px' }}>
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col xs={24} sm={8} md={6}>
-          <Card>
-            <Statistic
-              title="Tổng gói"
-              value={stats.totalPlans}
-              prefix={<CrownOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8} md={6}>
-          <Card>
-            <Statistic
-              title="Gói hoạt động"
-              value={stats.activePlans}
-              prefix={<CheckCircleOutlined />}
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8} md={6}>
-          <Card>
-            <Statistic
-              title="Người dùng Premium"
-              value={stats.activeSubscriptions}
-              prefix={<CrownOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={24} md={6}>
-          <Card>
-            <Statistic
-              title="Doanh thu tháng"
-              value={stats.revenue}
-              prefix="₫"
-              valueStyle={{ color: '#faad14' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+    <Spin spinning={isLoading} indicator={<LoadingOutlined style={{ fontSize: 48 }} />}>
+      <div style={{ padding: '24px' }}>
+        <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+          <Col xs={24} sm={8} md={6}>
+            <Card>
+              <Statistic
+                title="Tổng gói"
+                value={stats.totalPlans}
+                prefix={<CrownOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={8} md={6}>
+            <Card>
+              <Statistic
+                title="Gói hoạt động"
+                value={stats.activePlans}
+                prefix={<CheckCircleOutlined />}
+                valueStyle={{ color: '#52c41a' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={8} md={6}>
+            <Card>
+              <Statistic
+                title="Người dùng Premium"
+                value={stats.activeSubscriptions}
+                prefix={<CrownOutlined />}
+                valueStyle={{ color: '#1890ff' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={24} md={6}>
+            <Card>
+              <Statistic
+                title="Doanh thu tháng"
+                value={stats.revenue}
+                prefix="₫"
+                valueStyle={{ color: '#faad14' }}
+              />
+            </Card>
+          </Col>
+        </Row>
 
-      <Card
-        title="Quản lý gói Premium"
-        extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAddPlan}>
-            Thêm gói mới
-          </Button>
-        }
-        style={{ marginBottom: '24px' }}
-      >
-        <Table
-          columns={planColumns}
-          dataSource={plans}
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
-        />
-      </Card>
+        <Card
+          title="Quản lý gói Premium"
+          extra={
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddPlan} disabled={isSaving}>
+              Thêm gói mới
+            </Button>
+          }
+          style={{ marginBottom: '24px' }}
+        >
+          <Table
+            columns={planColumns}
+            dataSource={plans.map(p => ({ ...p, key: p.id }))}
+            rowKey="id"
+            pagination={{ pageSize: 10 }}
+            loading={isLoading}
+          />
+        </Card>
 
-      <Card title="Danh sách người dùng Premium">
-        <Table
-          columns={subscriptionColumns}
-          dataSource={subscriptions}
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
-        />
-      </Card>
+        <Card title="Danh sách người dùng Premium">
+          <Table
+            columns={subscriptionColumns}
+            dataSource={subscriptions.map(s => ({ ...s, key: s.id }))}
+            rowKey="id"
+            pagination={{ pageSize: 10 }}
+            loading={isLoading}
+          />
+        </Card>
 
-      <Modal
-        title={editingPlan ? 'Sửa gói Premium' : 'Thêm gói Premium mới'}
-        open={isModalVisible}
-        onOk={handleSavePlan}
-        onCancel={() => {
-          setIsModalVisible(false)
-          form.resetFields()
-        }}
-        width={600}
-        okText="Lưu"
-        cancelText="Hủy"
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="name"
-            label="Tên gói"
-            rules={[{ required: true, message: 'Vui lòng nhập tên gói' }]}
-          >
-            <Input placeholder="Ví dụ: Premium, Basic..." />
-          </Form.Item>
+        <Modal
+          title={editingPlan ? 'Sửa gói Premium' : 'Thêm gói Premium mới'}
+          open={isModalVisible}
+          onOk={handleSavePlan}
+          onCancel={() => {
+            setIsModalVisible(false)
+            form.resetFields()
+          }}
+          width={600}
+          okText="Lưu"
+          cancelText="Hủy"
+          confirmLoading={isSaving}
+        >
+          <Form form={form} layout="vertical">
+            <Form.Item
+              name="name"
+              label="Tên gói"
+              rules={[{ required: true, message: 'Vui lòng nhập tên gói' }]}
+            >
+              <Input placeholder="Ví dụ: Premium, Basic..." />
+            </Form.Item>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="price"
-                label="Giá (VNĐ)"
-                rules={[{ required: true, message: 'Vui lòng nhập giá' }]}
-              >
-                <InputNumber
-                  style={{ width: '100%' }}
-                  min={0}
-                  formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  placeholder="99000"
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="duration"
-                label="Thời hạn (ngày)"
-                rules={[{ required: true, message: 'Vui lòng nhập thời hạn' }]}
-              >
-                <InputNumber style={{ width: '100%' }} min={1} placeholder="30" />
-              </Form.Item>
-            </Col>
-          </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item
+                  name="price"
+                  label="Giá (VNĐ)"
+                  rules={[{ required: true, message: 'Vui lòng nhập giá' }]}
+                >
+                  <InputNumber
+                    style={{ width: '100%' }}
+                    min={0}
+                    formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                    placeholder="99000"
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  name="interval"
+                  label="Chu kỳ"
+                  rules={[{ required: true, message: 'Vui lòng chọn chu kỳ' }]}
+                  initialValue="MONTHLY"
+                >
+                  <select style={{ width: '100%', padding: '8px', borderRadius: '2px', border: '1px solid #d9d9d9' }}>
+                    <option value="MONTHLY">Hàng tháng</option>
+                    <option value="YEARLY">Hàng năm</option>
+                    <option value="LIFETIME">Trọn đời</option>
+                  </select>
+                </Form.Item>
+              </Col>
+            </Row>
 
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item
-                name="maxExpenses"
-                label="Giới hạn giao dịch"
-                rules={[{ required: true, message: 'Vui lòng nhập số' }]}
-                tooltip="-1 nghĩa là không giới hạn"
-              >
-                <InputNumber style={{ width: '100%' }} placeholder="-1" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="maxCategories"
-                label="Giới hạn danh mục"
-                rules={[{ required: true, message: 'Vui lòng nhập số' }]}
-                tooltip="-1 nghĩa là không giới hạn"
-              >
-                <InputNumber style={{ width: '100%' }} placeholder="-1" />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item
-                name="ocrScans"
-                label="Giới hạn OCR"
-                rules={[{ required: true, message: 'Vui lòng nhập số' }]}
-                tooltip="-1 nghĩa là không giới hạn"
-              >
-                <InputNumber style={{ width: '100%' }} placeholder="-1" />
-              </Form.Item>
-            </Col>
-          </Row>
+            <Form.Item
+              name="features"
+              label="Tính năng (mỗi dòng 1 tính năng)"
+              rules={[{ required: true, message: 'Vui lòng nhập tính năng' }]}
+            >
+              <TextArea rows={5} placeholder="Không giới hạn danh mục&#10;Không giới hạn giao dịch&#10;OCR không giới hạn" />
+            </Form.Item>
 
-          <Form.Item
-            name="features"
-            label="Tính năng (mỗi dòng 1 tính năng)"
-            rules={[{ required: true, message: 'Vui lòng nhập tính năng' }]}
-          >
-            <TextArea rows={5} placeholder="Không giới hạn danh mục&#10;Không giới hạn giao dịch&#10;OCR không giới hạn" />
-          </Form.Item>
-
-          <Form.Item name="isActive" label="Trạng thái" valuePropName="checked">
-            <Switch checkedChildren="Hoạt động" unCheckedChildren="Ngừng" />
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div>
+            <Form.Item name="isActive" label="Trạng thái" valuePropName="checked" initialValue={true}>
+              <Switch checkedChildren="Hoạt động" unCheckedChildren="Ngừng" />
+            </Form.Item>
+          </Form>
+        </Modal>
+      </div>
+    </Spin>
   )
 }
 

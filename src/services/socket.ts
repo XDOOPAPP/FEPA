@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client'
+import { API_CONFIG } from '../config/api.config'
 
 /**
  * Socket.IO Client Configuration
@@ -15,8 +16,8 @@ export const initializeSocket = (token?: string) => {
     return socket
   }
 
-  // TODO: Thay đổi URL theo backend của bạn
-  const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'
+  // Socket URL từ config tập trung
+  const SOCKET_URL = API_CONFIG.SOCKET_URL
 
   socket = io(SOCKET_URL, {
     auth: {
