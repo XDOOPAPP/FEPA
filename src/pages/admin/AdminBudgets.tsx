@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Card, Table, Progress, Tag, Typography, Statistic, Row, Col, Space, Button, Modal } from 'antd'
 import { DollarOutlined, WarningOutlined, ReloadOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
+import budgetAPI from '../../services/api/budgetAPI'
+import categoryAPI from '../../services/api/categoryAPI'
 
 const { Title, Text } = Typography
 
@@ -45,35 +47,52 @@ const AdminBudgets: React.FC = () => {
     })
   }
 
-  const loadData = () => {
-    const storedBudgets = localStorage.getItem('budgets') || '[]'
-    const budgetsData = JSON.parse(storedBudgets)
-    
-    const storedCategories = localStorage.getItem('categories') || '[]'
-    setCategories(JSON.parse(storedCategories))
-    
-    const storedUsers = localStorage.getItem('all_users') || '[]'
-    setUsers(JSON.parse(storedUsers))
-    
-    // Enhance budgets with user and category names
-    const enhanced = budgetsData.map((budget: any) => {
-      const category = JSON.parse(storedCategories).find((c: any) => c.id === budget.categoryId)
-      const user = JSON.parse(storedUsers).find((u: any) => u.id === budget.userId)
-      
-      return {
-        ...budget,
-        userId: budget.userId || '1',
-        userName: user?.fullName || budget.userName || 'Nguyễn Văn A',
-        categoryName: category?.name || 'Unknown',
-        amount: budget.amount || budget.limit || 0,
-        spent: budget.spent || 0,
-        alertThreshold: budget.alertThreshold || 80,
-        startDate: budget.startDate || (budget.month ? `${budget.month}-01` : dayjs().startOf('month').format('YYYY-MM-DD')),
-        endDate: budget.endDate || (budget.month ? dayjs(budget.month).endOf('month').format('YYYY-MM-DD') : dayjs().endOf('month').format('YYYY-MM-DD'))
+  const loadData = async () => {
+    try {
+      // Load categories
+      let categoriesData: any[] = []
+      try {
+        categoriesData = await categoryAPI.getAll()
+        setCategories(categoriesData)
+      } catch (error) {
+        console.error('Failed to load categories:', error)
       }
-    })
-    
-    setBudgets(enhanced)
+
+      // Load users (mock)
+      const storedUsers = localStorage.getItem('all_users') || '[]'
+      const usersData = JSON.parse(storedUsers)
+      setUsers(usersData)
+
+      // Load budgets
+      try {
+        const budgetsData = await budgetAPI.getAll()
+
+        // Enhance budgets
+        const enhanced = budgetsData.map((budget: any) => {
+          const category = categoriesData.find((c: any) => c.id === budget.category) // budgetAPI uses 'category'
+          // Note: budgetAPI.getAll might not return userId if user-centric
+          const userId = '1' // Default to 1 (or current user)
+          const user = usersData.find((u: any) => u.id === userId)
+
+          return {
+            ...budget,
+            userId: userId,
+            userName: user?.fullName || 'Người dùng',
+            categoryName: category?.name || 'Unknown',
+            amount: budget.amount || budget.limit || 0,
+            categoryId: budget.category,
+            startDate: budget.startDate || dayjs().startOf('month').format('YYYY-MM-DD'),
+            endDate: budget.endDate || dayjs().endOf('month').format('YYYY-MM-DD')
+          }
+        })
+        setBudgets(enhanced)
+      } catch (error) {
+        console.error('Failed to load budgets:', error)
+        // Fallback logic could go here
+      }
+    } catch (error) {
+      console.error('Error in loadData:', error)
+    }
   }
 
 
@@ -116,7 +135,7 @@ const AdminBudgets: React.FC = () => {
         const percentage = amount > 0 ? (record.spent / amount) * 100 : 0
         const threshold = record.alertThreshold || 80
         let status: 'success' | 'normal' | 'exception' = 'normal'
-        
+
         if (percentage >= 100) {
           status = 'exception'
         } else if (percentage >= threshold) {
@@ -126,7 +145,7 @@ const AdminBudgets: React.FC = () => {
         } else {
           status = 'success'
         }
-        
+
         return (
           <Progress
             percent={Math.min(percentage, 100)}
@@ -155,7 +174,7 @@ const AdminBudgets: React.FC = () => {
 
   ]
 
-  const filteredBudgets = selectedUserId 
+  const filteredBudgets = selectedUserId
     ? budgets.filter(b => b.userId === selectedUserId)
     : []
 
@@ -171,11 +190,11 @@ const AdminBudgets: React.FC = () => {
     <div>
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={8}>
-          <Card 
+          <Card
             title={<Title level={4}>Danh sách người dùng</Title>}
             extra={
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 icon={<ReloadOutlined />}
                 onClick={clearAndReloadBudgets}
                 size="small"
@@ -190,12 +209,12 @@ const AdminBudgets: React.FC = () => {
                 const totalBudget = userBudgets.reduce((sum, b) => sum + b.amount, 0)
                 const totalSpent = userBudgets.reduce((sum, b) => sum + b.spent, 0)
                 const isOverBudget = userBudgets.some(b => b.spent > b.amount)
-                
+
                 return (
                   <Card
                     key={user.id}
                     size="small"
-                    style={{ 
+                    style={{
                       marginBottom: 12,
                       cursor: 'pointer',
                       border: selectedUserId === user.id ? '2px solid #1890ff' : '1px solid #f0f0f0',
@@ -219,7 +238,7 @@ const AdminBudgets: React.FC = () => {
                         <Text type="secondary" style={{ fontSize: 12 }}>Tổng: </Text>
                         <Text strong style={{ fontSize: 12 }}>{totalBudget.toLocaleString('vi-VN')}đ</Text>
                       </div>
-                      <Progress 
+                      <Progress
                         percent={totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0}
                         size="small"
                         status={totalSpent > totalBudget ? 'exception' : 'normal'}

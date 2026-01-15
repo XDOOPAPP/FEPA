@@ -1,72 +1,53 @@
-import React, { useState, useEffect } from 'react'
-import { Card, Table, Button, Space, Modal, Form, Input, InputNumber, Tag, Switch, message, Row, Col, Statistic, Spin } from 'antd'
+import React, { useState } from 'react'
+import { Card, Table, Button, Space, Modal, Form, Input, InputNumber, Tag, Switch, Row, Col, Statistic, Spin } from 'antd'
 import { CrownOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
-import dayjs from 'dayjs'
-import subscriptionAPI from '../../services/api/subscriptionAPI'
-import type { SubscriptionPlan as APIPlan, UserSubscription as APISubscription } from '../../services/api/subscriptionAPI'
-
-const { TextArea } = Input
+import { useGetPlans, useCreatePlan, useUpdatePlan, useDeletePlan, useHealthCheck } from '../../services/queries'
+import type { SubscriptionPlan as APIPlan } from '../../services/api/subscriptionAPI'
 
 interface SubscriptionPlan extends APIPlan {
   id: string // Alias cho _id
 }
 
-interface UserSubscription {
-  id: string
-  userId: string
-  userName?: string
-  userEmail?: string
-  planId: string
-  planName: string
-  startDate: string
-  endDate: string
-  status: 'PENDING' | 'ACTIVE' | 'CANCELLED' | 'EXPIRED'
-  autoRenew: boolean
-}
-
 const AdminSubscription: React.FC = () => {
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([])
-  const [subscriptions, setSubscriptions] = useState<UserSubscription[]>([])
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
   const [form] = Form.useForm()
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  // React Query hooks
+  const { data: plansData, isLoading: isLoadingPlans } = useGetPlans()
+  const { data: healthData } = useHealthCheck()
+  const createPlanMutation = useCreatePlan()
+  const updatePlanMutation = useUpdatePlan()
+  const deletePlanMutation = useDeletePlan()
 
-  const loadData = async () => {
-    try {
-      setIsLoading(true)
-      // Load plans từ API
-      const plansData = await subscriptionAPI.getPlans()
-      const mappedPlans = plansData.map((plan: APIPlan) => ({
-        ...plan,
-        id: plan._id,
-      }))
-      setPlans(mappedPlans)
-
-      // Không có endpoint để lấy tất cả subscriptions, nên để trống
-      setSubscriptions([])
-    } catch (error) {
-      console.error('Failed to load data:', error)
-      message.error('Không thể tải dữ liệu từ server')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const savePlans = async (newPlans: SubscriptionPlan[]) => {
-    setPlans(newPlans)
-  }
+  const plans = (plansData || []).map((plan: APIPlan) => ({
+    ...plan,
+    id: plan._id,
+  })) as SubscriptionPlan[]
 
   const handleAddPlan = () => {
     setEditingPlan(null)
     form.resetFields()
     form.setFieldsValue({ isActive: true, interval: 'MONTHLY' })
+    setIsModalVisible(true)
+  }
+
+  const handleAddFreePlan = () => {
+    if (plans.some(p => p.isFree)) {
+      message.warning('Chỉ được phép có 1 gói miễn phí!')
+      return
+    }
+    setEditingPlan(null)
+    form.resetFields()
+    form.setFieldsValue({
+      name: 'Free',
+      price: 0,
+      isActive: true,
+      interval: 'LIFETIME',
+      features: 'Cơ bản',
+      isFree: true
+    })
     setIsModalVisible(true)
   }
 
@@ -88,16 +69,9 @@ const AdminSubscription: React.FC = () => {
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
-          setIsSaving(true)
-          await subscriptionAPI.disablePlan(planId)
-          const newPlans = plans.filter(p => p.id !== planId)
-          savePlans(newPlans)
-          message.success('Đã xóa gói dịch vụ')
+          await deletePlanMutation.mutateAsync(planId)
         } catch (error) {
           console.error('Failed to delete plan:', error)
-          message.error('Không thể xóa gói dịch vụ')
-        } finally {
-          setIsSaving(false)
         }
       },
     })
@@ -107,43 +81,39 @@ const AdminSubscription: React.FC = () => {
     try {
       const values = await form.validateFields()
       const features = values.features.split('\n').filter((f: string) => f.trim())
-      
-      setIsSaving(true)
-      
+
+      // Validate Singleton Free Plan
+      const isFree = form.getFieldValue('isFree') || values.price === 0
+
+      if (isFree) {
+        const hasFree = plans.some(p => p.isFree && p.id !== editingPlan?.id)
+        if (hasFree) {
+          message.error('Đã tồn tại gói miễn phí! Không thể tạo thêm.')
+          return
+        }
+      }
+
+      const planData = {
+        ...values,
+        features,
+        isFree: isFree || false // Ensure backend gets this field
+      }
+
       if (editingPlan) {
         // Update plan
-        await subscriptionAPI.updatePlan(editingPlan.id, {
-          ...values,
-          features,
+        await updatePlanMutation.mutateAsync({
+          planId: editingPlan.id,
+          data: planData,
         })
-        const newPlans = plans.map(p =>
-          p.id === editingPlan.id
-            ? { ...p, ...values, features }
-            : p
-        )
-        savePlans(newPlans)
-        message.success('Cập nhật gói thành công')
       } else {
         // Create new plan
-        const result = await subscriptionAPI.createPlan({
-          ...values,
-          features,
-        })
-        const newPlan: SubscriptionPlan = {
-          ...result,
-          id: result._id,
-        }
-        savePlans([...plans, newPlan])
-        message.success('Thêm gói thành công')
+        await createPlanMutation.mutateAsync(planData)
       }
-      
+
       setIsModalVisible(false)
       form.resetFields()
     } catch (error) {
       console.error('Error saving plan:', error)
-      message.error('Không thể lưu gói dịch vụ')
-    } finally {
-      setIsSaving(false)
     }
   }
 
@@ -159,7 +129,12 @@ const AdminSubscription: React.FC = () => {
       title: 'Tên gói',
       dataIndex: 'name',
       key: 'name',
-      render: (text) => <strong>{text}</strong>,
+      render: (text, record) => (
+        <Space>
+          <strong>{text}</strong>
+          {record.isFree && <Tag color="blue">Free</Tag>}
+        </Space>
+      ),
     },
     {
       title: 'Giá',
@@ -185,10 +160,19 @@ const AdminSubscription: React.FC = () => {
       title: 'Trạng thái',
       dataIndex: 'isActive',
       key: 'isActive',
-      render: (isActive) => (
-        <Tag color={isActive ? 'success' : 'default'} icon={isActive ? <CheckCircleOutlined /> : <CloseCircleOutlined />}>
-          {isActive ? 'Hoạt động' : 'Ngừng'}
-        </Tag>
+      render: (isActive, record) => (
+        <Switch
+          checked={isActive}
+          checkedChildren="Hoạt động"
+          unCheckedChildren="Ngừng"
+          loading={updatePlanMutation.isPending && editingPlan?.id === record.id} // Optimistic update ideally
+          onChange={(checked) => {
+            updatePlanMutation.mutate({
+              planId: record.id,
+              data: { isActive: checked }
+            })
+          }}
+        />
       ),
       filters: [
         { text: 'Hoạt động', value: true },
@@ -202,10 +186,10 @@ const AdminSubscription: React.FC = () => {
       width: 150,
       render: (_, record) => (
         <Space>
-          <Button type="link" icon={<EditOutlined />} onClick={() => handleEditPlan(record)} disabled={isSaving}>
+          <Button type="link" icon={<EditOutlined />} onClick={() => handleEditPlan(record)} disabled={deletePlanMutation.isPending || createPlanMutation.isPending || updatePlanMutation.isPending}>
             Sửa
           </Button>
-          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeletePlan(record.id)} disabled={isSaving}>
+          <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeletePlan(record.id)} disabled={deletePlanMutation.isPending || createPlanMutation.isPending || updatePlanMutation.isPending}>
             Xóa
           </Button>
         </Space>
@@ -213,84 +197,28 @@ const AdminSubscription: React.FC = () => {
     },
   ]
 
-  const subscriptionColumns: ColumnsType<UserSubscription> = [
-    {
-      title: 'Người dùng',
-      key: 'user',
-      render: (_, record) => (
-        <Space direction="vertical" size={0}>
-          <strong>{record.userId}</strong>
-          {record.userEmail && <span style={{ fontSize: '12px', color: '#666' }}>{record.userEmail}</span>}
-        </Space>
-      ),
-    },
-    {
-      title: 'Gói',
-      dataIndex: 'planName',
-      key: 'planName',
-      render: (text) => <Tag color="blue" icon={<CrownOutlined />}>{text}</Tag>,
-    },
-    {
-      title: 'Ngày bắt đầu',
-      dataIndex: 'startDate',
-      key: 'startDate',
-      render: (date) => dayjs(date).format('DD/MM/YYYY'),
-    },
-    {
-      title: 'Ngày hết hạn',
-      dataIndex: 'endDate',
-      key: 'endDate',
-      render: (date) => dayjs(date).format('DD/MM/YYYY'),
-    },
-    {
-      title: 'Trạng thái',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: UserSubscription['status']) => {
-        const statusMap = {
-          ACTIVE: { color: 'success', text: 'Đang hoạt động', icon: <CheckCircleOutlined /> },
-          PENDING: { color: 'processing', text: 'Chờ xử lý', icon: <LoadingOutlined /> },
-          EXPIRED: { color: 'default', text: 'Hết hạn', icon: <CloseCircleOutlined /> },
-          CANCELLED: { color: 'error', text: 'Đã hủy', icon: <CloseCircleOutlined /> },
-        }
-        const config = statusMap[status]
-        return <Tag color={config.color} icon={config.icon}>{config.text}</Tag>
-      },
-      filters: [
-        { text: 'Đang hoạt động', value: 'ACTIVE' },
-        { text: 'Hết hạn', value: 'EXPIRED' },
-        { text: 'Đã hủy', value: 'CANCELLED' },
-      ],
-      onFilter: (value, record) => record.status === value,
-    },
-    {
-      title: 'Tự động gia hạn',
-      dataIndex: 'autoRenew',
-      key: 'autoRenew',
-      render: (autoRenew) => (
-        <Tag color={autoRenew ? 'success' : 'default'}>
-          {autoRenew ? 'Có' : 'Không'}
-        </Tag>
-      ),
-    },
-  ]
-
+  // Stats calculation
   const stats = {
     totalPlans: plans.length,
     activePlans: plans.filter(p => p.isActive).length,
-    totalSubscriptions: subscriptions.length,
-    activeSubscriptions: subscriptions.filter(s => s.status === 'ACTIVE').length,
-    revenue: subscriptions
-      .filter(s => s.status === 'ACTIVE')
-      .reduce((sum, s) => {
-        const plan = plans.find(p => p.id === s.planId)
-        return sum + (plan?.price || 0)
-      }, 0),
   }
 
+  const isServiceHealthy = healthData?.success ?? null
+  const isSaving = createPlanMutation.isPending || updatePlanMutation.isPending || deletePlanMutation.isPending
+
   return (
-    <Spin spinning={isLoading} indicator={<LoadingOutlined style={{ fontSize: 48 }} />}>
+    <Spin spinning={isLoadingPlans} indicator={<LoadingOutlined style={{ fontSize: 48 }} />}>
       <div style={{ padding: '24px' }}>
+        {/* Health Check Badge */}
+        <div style={{ marginBottom: '16px' }}>
+          <Tag
+            color={isServiceHealthy ? 'success' : isServiceHealthy === null ? 'processing' : 'error'}
+            icon={isServiceHealthy ? <CheckCircleOutlined /> : isServiceHealthy === null ? <LoadingOutlined /> : <CloseCircleOutlined />}
+          >
+            Subscription Service: {isServiceHealthy ? 'Online' : isServiceHealthy === null ? 'Checking...' : 'Offline'}
+          </Tag>
+        </div>
+
         <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
           <Col xs={24} sm={8} md={6}>
             <Card>
@@ -311,34 +239,22 @@ const AdminSubscription: React.FC = () => {
               />
             </Card>
           </Col>
-          <Col xs={24} sm={8} md={6}>
-            <Card>
-              <Statistic
-                title="Người dùng Premium"
-                value={stats.activeSubscriptions}
-                prefix={<CrownOutlined />}
-                valueStyle={{ color: '#1890ff' }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={24} md={6}>
-            <Card>
-              <Statistic
-                title="Doanh thu tháng"
-                value={stats.revenue}
-                prefix="₫"
-                valueStyle={{ color: '#faad14' }}
-              />
-            </Card>
-          </Col>
         </Row>
 
         <Card
           title="Quản lý gói Premium"
           extra={
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddPlan} disabled={isSaving}>
-              Thêm gói mới
-            </Button>
+            <Space>
+              <Button
+                onClick={handleAddFreePlan}
+                disabled={isSaving || plans.some(p => p.isFree)}
+              >
+                Thêm gói miễn phí
+              </Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={handleAddPlan} disabled={isSaving}>
+                Thêm gói mới
+              </Button>
+            </Space>
           }
           style={{ marginBottom: '24px' }}
         >
@@ -347,17 +263,7 @@ const AdminSubscription: React.FC = () => {
             dataSource={plans.map(p => ({ ...p, key: p.id }))}
             rowKey="id"
             pagination={{ pageSize: 10 }}
-            loading={isLoading}
-          />
-        </Card>
-
-        <Card title="Danh sách người dùng Premium">
-          <Table
-            columns={subscriptionColumns}
-            dataSource={subscriptions.map(s => ({ ...s, key: s.id }))}
-            rowKey="id"
-            pagination={{ pageSize: 10 }}
-            loading={isLoading}
+            loading={isLoadingPlans}
           />
         </Card>
 
@@ -395,6 +301,7 @@ const AdminSubscription: React.FC = () => {
                     min={0}
                     formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                     placeholder="99000"
+                    disabled={form.getFieldValue('isFree') === true && !editingPlan} // Lock if creating Free Plan
                   />
                 </Form.Item>
               </Col>
@@ -419,7 +326,7 @@ const AdminSubscription: React.FC = () => {
               label="Tính năng (mỗi dòng 1 tính năng)"
               rules={[{ required: true, message: 'Vui lòng nhập tính năng' }]}
             >
-              <TextArea rows={5} placeholder="Không giới hạn danh mục&#10;Không giới hạn giao dịch&#10;OCR không giới hạn" />
+              <Input.TextArea rows={5} placeholder="Không giới hạn danh mục&#10;Không giới hạn giao dịch&#10;OCR không giới hạn" />
             </Form.Item>
 
             <Form.Item name="isActive" label="Trạng thái" valuePropName="checked" initialValue={true}>
@@ -431,7 +338,5 @@ const AdminSubscription: React.FC = () => {
     </Spin>
   )
 }
-
-const Text: React.FC<{ children: React.ReactNode }> = ({ children }) => <span>{children}</span>
 
 export default AdminSubscription

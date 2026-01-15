@@ -13,13 +13,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const accessToken = localStorage.getItem('accessToken');
     const storedUser = sessionStorage.getItem('user');
-    
+
     // Only restore user if both token and user exist
     if (accessToken && storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
-        
+
         // Optionally verify token with backend
         authAPI.getCurrentUser()
           .then(response => {
@@ -52,25 +52,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout();
       }
     }
-    
+
     setLoading(false);
   }, []);
 
   // Real API login
   const login = async (email: string, password: string): Promise<void> => {
     setLoading(true);
-    
+
     try {
       console.log('🔐 Login attempt:', { email });
-      
+
       // Call real auth API
       const response = await authAPI.login({ email, password });
       console.log('✅ Full login response:', JSON.stringify(response, null, 2));
-      
+
       // Response structure from auth-service: { accessToken, refreshToken, user: {...} }
       // Check if this is the direct response (not wrapped in success/message)
       let accessToken, refreshToken, userData;
-      
+
       // Handle different response formats
       if (response?.accessToken) {
         // Direct format: { accessToken, refreshToken, user }
@@ -83,17 +83,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refreshToken = response.data.refreshToken;
         userData = response.data.user;
       }
-      
-      console.log('🔐 Extracted tokens:', { 
-        hasAccessToken: !!accessToken, 
+
+      console.log('🔐 Extracted tokens:', {
+        hasAccessToken: !!accessToken,
         hasRefreshToken: !!refreshToken,
-        hasUserData: !!userData 
+        hasUserData: !!userData
       });
-      
+
       // Validate tokens and user data exist
       if (!accessToken || !userData) {
         console.log('❌ No user in login response, fetching from /auth/me');
-        
+
         // Save tokens first
         if (accessToken) {
           localStorage.setItem('accessToken', accessToken);
@@ -101,15 +101,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (refreshToken) {
           localStorage.setItem('refreshToken', refreshToken);
         }
-        
+
         // Fetch user info from /auth/me endpoint
         try {
           const userResponse = await authAPI.getCurrentUser();
           console.log('✅ getCurrentUser response:', userResponse);
-          
+
           // Extract user data
           userData = userResponse.user || userResponse;
-          
+
           if (!userData?.email) {
             throw new Error('No user email found in response');
           }
@@ -121,14 +121,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error('Không thể lấy thông tin người dùng');
         }
       }
-      
+
       // Save tokens to localStorage
       console.log('💾 Saving tokens to localStorage');
       localStorage.setItem('accessToken', accessToken);
       if (refreshToken) {
         localStorage.setItem('refreshToken', refreshToken);
       }
-      
+
       // Create user object with required fields
       const userProfile: User = {
         id: userData.id || userData._id,
@@ -137,19 +137,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: userData.role || 'admin',
         avatar: userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.fullName)}&background=1890ff&color=fff`
       };
-      
+
       // Save to both state and sessionStorage
       console.log('👤 Setting user state:', userProfile);
       setUser(userProfile);
       sessionStorage.setItem('user', JSON.stringify(userProfile));
-      
+
       console.log('✅ Login successful, user:', userProfile);
       console.log('📦 Current localStorage:', {
         accessToken: localStorage.getItem('accessToken') ? 'SET' : 'NOT SET',
         refreshToken: localStorage.getItem('refreshToken') ? 'SET' : 'NOT SET',
         user: sessionStorage.getItem('user') ? 'SET' : 'NOT SET'
       });
-      
+
       setLoading(false);
     } catch (error: any) {
       setLoading(false);

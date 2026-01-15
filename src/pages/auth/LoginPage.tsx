@@ -29,17 +29,17 @@ const LoginPage: React.FC = () => {
   const onFinish = async (values: LoginFormValues) => {
     try {
       setLoading(true)
-      
+
       // Login as admin only
       await login(values.email, values.password)
-      
+
       // Handle "Remember me" checkbox
       if (values.remember) {
         localStorage.setItem('rememberedEmail', values.email)
       } else {
         localStorage.removeItem('rememberedEmail')
       }
-      
+
       message.success('Đăng nhập thành công!')
       navigate('/admin/dashboard')
     } catch (error: any) {
@@ -51,10 +51,10 @@ const LoginPage: React.FC = () => {
   }
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
       justifyContent: 'center',
       background: 'linear-gradient(135deg, #5490c1ff 0%, #4d91efff 100%)',
       padding: '20px'
@@ -104,11 +104,11 @@ const LoginPage: React.FC = () => {
             </Form.Item>
 
             <Form.Item>
-              <Button 
-                type="primary" 
-                htmlType="submit" 
-                block 
-                size="large" 
+              <Button
+                type="primary"
+                htmlType="submit"
+                block
+                size="large"
                 loading={loading}
               >
                 Đăng Nhập

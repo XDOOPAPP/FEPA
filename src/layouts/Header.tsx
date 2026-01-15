@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Layout, Space, Avatar, Dropdown, Button, Badge, List, Typography, Empty } from 'antd'
-import { MenuFoldOutlined, MenuUnfoldOutlined, BellOutlined, LogoutOutlined, UserOutlined, SettingOutlined, CheckCircleOutlined, InfoCircleOutlined, WarningOutlined, CloseCircleOutlined } from '@ant-design/icons'
+import { Layout, Space, Avatar, Dropdown, Button, Badge, List, Typography, Empty, Tag, Tooltip } from 'antd'
+import { MenuFoldOutlined, MenuUnfoldOutlined, BellOutlined, LogoutOutlined, UserOutlined, SettingOutlined, CheckCircleOutlined, InfoCircleOutlined, WarningOutlined, CloseCircleOutlined, CrownOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import dayjs from 'dayjs'
@@ -176,6 +176,18 @@ const Header: React.FC<HeaderProps> = ({ collapsed, onCollapsedChange }) => {
       />
 
       <Space size="large">
+        {user?.subscriptionPlan && (
+          <Tooltip title="Current Subscription Plan">
+            <Tag 
+              icon={<CrownOutlined />}
+              color={user.subscriptionPlan.tier === 'premium' ? 'gold' : 'blue'}
+              style={{ cursor: 'pointer', marginRight: '8px' }}
+              onClick={() => navigate('/admin/subscription')}
+            >
+              {user.subscriptionPlan.name}
+            </Tag>
+          </Tooltip>
+        )}
         <Dropdown 
           dropdownRender={() => notificationItems}
           trigger={['click']}

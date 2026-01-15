@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
-import { Card, List, Space, Button, Tag, Typography, Empty, Tabs, Modal, message, Form, Input, Select } from 'antd'
-import { BellOutlined, CheckCircleOutlined, InfoCircleOutlined, WarningOutlined, CloseCircleOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
+import React, { useState } from 'react'
+import { Card, List, Space, Button, Tag, Typography, Empty, Tabs, Modal, message, Form, Input, Select, Spin } from 'antd'
+import { BellOutlined, CheckCircleOutlined, InfoCircleOutlined, WarningOutlined, CloseCircleOutlined, DeleteOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/vi'
+import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead, useDeleteNotification } from '../../services/queries'
 
 dayjs.extend(relativeTime)
 dayjs.locale('vi')
@@ -12,7 +13,8 @@ const { Title, Text } = Typography
 const { TextArea } = Input
 
 interface Notification {
-  id: string
+  _id?: string
+  id?: string
   title: string
   message: string
   type: 'info' | 'success' | 'warning' | 'error'
@@ -22,50 +24,22 @@ interface Notification {
 }
 
 const AdminNotifications: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([])
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'read'>('all')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [form] = Form.useForm()
 
-  useEffect(() => {
-    loadNotifications()
-  }, [])
-
-  const loadNotifications = () => {
-    const stored = localStorage.getItem('admin_notifications')
-    if (stored) {
-      const allNotifications = JSON.parse(stored)
-      // Filter out budget warning notifications
-      const filtered = allNotifications.filter(
-        (n: Notification) => !n.title.includes('Cảnh báo ngân sách') && !n.message.includes('vượt ngân sách')
-      )
-      // Update localStorage if filtered
-      if (filtered.length !== allNotifications.length) {
-        localStorage.setItem('admin_notifications', JSON.stringify(filtered))
-      }
-      setNotifications(filtered)
-    }
-  }
-
-  const saveNotifications = (updated: Notification[]) => {
-    localStorage.setItem('admin_notifications', JSON.stringify(updated))
-    setNotifications(updated)
-  }
+  // API Hooks
+  const { data: notifications = [], isLoading } = useNotifications()
+  const markReadMutation = useMarkNotificationRead()
+  const markAllReadMutation = useMarkAllNotificationsRead()
+  const deleteMutation = useDeleteNotification()
 
   const handleMarkAsRead = (id: string) => {
-    const updated = notifications.map(n =>
-      n.id === id ? { ...n, read: true } : n
-    )
-    saveNotifications(updated)
-    message.success('Đã đánh dấu là đã đọc')
-    window.dispatchEvent(new Event('notificationsUpdated'))
+    markReadMutation.mutate(id)
   }
 
   const handleMarkAllAsRead = () => {
-    const updated = notifications.map(n => ({ ...n, read: true }))
-    saveNotifications(updated)
-    message.success('Đã đánh dấu tất cả là đã đọc')
-    window.dispatchEvent(new Event('notificationsUpdated'))
+    markAllReadMutation.mutate()
   }
 
   const handleDelete = (id: string) => {
@@ -73,46 +47,18 @@ const AdminNotifications: React.FC = () => {
       title: 'Xác nhận xóa',
       content: 'Bạn có chắc muốn xóa thông báo này?',
       onOk: () => {
-        const updated = notifications.filter(n => n.id !== id)
-        saveNotifications(updated)
-        message.success('Đã xóa thông báo')
-        window.dispatchEvent(new Event('notificationsUpdated'))
+        deleteMutation.mutate(id)
       }
     })
   }
 
-  const handleDeleteAll = () => {
-    Modal.confirm({
-      title: 'Xác nhận xóa tất cả',
-      content: 'Bạn có chắc muốn xóa tất cả thông báo?',
-      onOk: () => {
-        saveNotifications([])
-        message.success('Đã xóa tất cả thông báo')
-        window.dispatchEvent(new Event('notificationsUpdated'))
-      }
-    })
-  }
 
+  // TODO: Add Create Notification API if needed
   const handleCreateNotification = async () => {
     try {
-      const values = await form.validateFields()
-      const newNotification: Notification = {
-        id: Date.now().toString(),
-        title: values.title,
-        message: values.message,
-        type: values.type,
-        priority: values.priority,
-        read: false,
-        createdAt: new Date().toISOString(),
-      }
-      
-      saveNotifications([newNotification, ...notifications])
-      message.success('Tạo thông báo thành công!')
+      message.info('Chức năng tạo thông báo đang được phát triển')
       setIsCreateModalOpen(false)
       form.resetFields()
-      
-      // Trigger reload for AdminHeader notifications
-      window.dispatchEvent(new Event('notificationsUpdated'))
     } catch (error) {
       console.error('Validation failed:', error)
     }
@@ -145,18 +91,28 @@ const AdminNotifications: React.FC = () => {
   }
 
   const getFilteredNotifications = () => {
+    // Handle both id and _id from backend
+    const list = notifications.map((n: Notification) => ({
+      ...n,
+      id: n.id || n._id || ''
+    }))
+
     switch (activeTab) {
       case 'unread':
-        return notifications.filter(n => !n.read)
+        return list.filter((n: Notification) => !n.read)
       case 'read':
-        return notifications.filter(n => n.read)
+        return list.filter((n: Notification) => n.read)
       default:
-        return notifications
+        return list
     }
   }
 
+  if (isLoading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', padding: 50 }}><Spin size="large" /></div>
+  }
+
   const filteredNotifications = getFilteredNotifications()
-  const unreadCount = notifications.filter(n => !n.read).length
+  const unreadCount = notifications.filter((n: Notification) => !n.read).length
 
   const tabItems = [
     {
@@ -182,6 +138,7 @@ const AdminNotifications: React.FC = () => {
         title={<Title level={3}><BellOutlined /> Thông báo quản trị</Title>}
         extra={
           <Space>
+            {/* 
             <Button 
               type="primary" 
               icon={<PlusOutlined />}
@@ -189,16 +146,19 @@ const AdminNotifications: React.FC = () => {
             >
               Tạo thông báo
             </Button>
+            */}
             {unreadCount > 0 && (
               <Button onClick={handleMarkAllAsRead}>
                 Đánh dấu tất cả là đã đọc
               </Button>
             )}
+            {/*
             {notifications.length > 0 && (
               <Button danger onClick={handleDeleteAll}>
                 Xóa tất cả
               </Button>
             )}
+            */}
           </Space>
         }
       >
@@ -226,7 +186,7 @@ const AdminNotifications: React.FC = () => {
                   !item.read && (
                     <Button
                       type="link"
-                      onClick={() => handleMarkAsRead(item.id)}
+                      onClick={() => item.id && handleMarkAsRead(item.id)}
                     >
                       Đánh dấu đã đọc
                     </Button>
@@ -235,7 +195,7 @@ const AdminNotifications: React.FC = () => {
                     type="link"
                     danger
                     icon={<DeleteOutlined />}
-                    onClick={() => handleDelete(item.id)}
+                    onClick={() => item.id && handleDelete(item.id)}
                   >
                     Xóa
                   </Button>
@@ -273,7 +233,7 @@ const AdminNotifications: React.FC = () => {
         )}
       </Card>
 
-      {/* Create Notification Modal */}
+      {/* Create Notification Modal - Hidden for now */}
       <Modal
         title="Tạo Thông Báo Mới"
         open={isCreateModalOpen}
@@ -304,9 +264,9 @@ const AdminNotifications: React.FC = () => {
             label="Nội dung"
             rules={[{ required: true, message: 'Vui lòng nhập nội dung' }]}
           >
-            <TextArea 
-              rows={4} 
-              placeholder="Nhập nội dung thông báo" 
+            <TextArea
+              rows={4}
+              placeholder="Nhập nội dung thông báo"
             />
           </Form.Item>
 

@@ -7,6 +7,7 @@ export interface CreatePlanRequest {
   price: number
   interval: 'MONTHLY' | 'YEARLY' | 'LIFETIME'
   features: string[]
+  isFree?: boolean
   isActive?: boolean
 }
 
@@ -14,6 +15,7 @@ export interface UpdatePlanRequest {
   name?: string
   price?: number
   features?: string[]
+  isFree?: boolean
   isActive?: boolean
 }
 
@@ -24,6 +26,7 @@ export interface SubscriptionPlan {
   price: number
   interval: 'MONTHLY' | 'YEARLY' | 'LIFETIME'
   features: string[]
+  isFree: boolean
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -70,6 +73,15 @@ export interface StatsResponse {
   }
 }
 
+export interface HealthCheckResponse {
+  success: boolean
+  message: string
+  data?: {
+    alive: boolean
+    timestamp: string
+  }
+}
+
 // ========== API FUNCTIONS ==========
 const subscriptionAPI = {
   /**
@@ -91,7 +103,7 @@ const subscriptionAPI = {
     const response = await axiosInstance.get<SubscriptionResponse>(
       API_CONFIG.SUBSCRIPTIONS.PLAN_DETAIL(id)
     )
-    return response.data.data
+    return response.data || response
   },
 
   /**
@@ -103,7 +115,8 @@ const subscriptionAPI = {
       API_CONFIG.SUBSCRIPTIONS.CREATE_PLAN,
       data
     )
-    return response.data.data
+    // Response from axiosInstance is already the body
+    return response.data || response
   },
 
   /**
@@ -115,7 +128,7 @@ const subscriptionAPI = {
       API_CONFIG.SUBSCRIPTIONS.UPDATE_PLAN(id),
       data
     )
-    return response.data.data
+    return response.data || response
   },
 
   /**
@@ -126,7 +139,7 @@ const subscriptionAPI = {
     const response = await axiosInstance.delete<SubscriptionResponse>(
       API_CONFIG.SUBSCRIPTIONS.DELETE_PLAN(id)
     )
-    return response.data
+    return response.data || response
   },
 
   /**
@@ -138,6 +151,32 @@ const subscriptionAPI = {
       API_CONFIG.SUBSCRIPTIONS.ADMIN_STATS
     )
     return response.data || response
+  },
+
+  /**
+   * Kiểm tra trạng thái service
+   * GET /api/v1/subscriptions/health
+   */
+  /**
+   * Kiểm tra trạng thái service
+   * NOTE: Sử dụng endpoint /plans làm proxy vì Gateway thiếu route /health
+   */
+  checkHealth: async () => {
+    try {
+      // Gọi getPlans để kiểm tra kết nối
+      await axiosInstance.get(API_CONFIG.SUBSCRIPTIONS.PLANS)
+      // Nếu thành công, trả về mock status UP
+      return {
+        success: true,
+        message: 'Service is reachable',
+        data: {
+          alive: true,
+          timestamp: new Date().toISOString()
+        }
+      } as HealthCheckResponse
+    } catch (error) {
+      throw error
+    }
   },
 
   /**
@@ -160,7 +199,7 @@ const subscriptionAPI = {
       API_CONFIG.SUBSCRIPTIONS.SUBSCRIBE,
       { planId }
     )
-    return response.data.data
+    return response.data || response
   },
 
   /**
@@ -204,17 +243,6 @@ const subscriptionAPI = {
     const response = await axiosInstance.get<SubscriptionResponse>(
       API_CONFIG.SUBSCRIPTIONS.CHECK_FEATURE,
       { params: { feature } }
-    )
-    return response.data.data
-  },
-
-  /**
-   * Toggle auto-renewal
-   * POST /api/v1/subscriptions/auto-renew
-   */
-  toggleAutoRenew: async () => {
-    const response = await axiosInstance.post<SubscriptionResponse>(
-      API_CONFIG.SUBSCRIPTIONS.AUTO_RENEW
     )
     return response.data.data
   },

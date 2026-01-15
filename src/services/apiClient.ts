@@ -17,7 +17,7 @@ const apiClient: AxiosInstance = axios.create({
 // Request interceptor - Add auth token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -41,8 +41,9 @@ apiClient.interceptors.response.use(
       switch (status) {
         case 401:
           message.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          sessionStorage.removeItem('user');
           window.location.href = '/login';
           break;
         case 403:

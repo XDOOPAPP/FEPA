@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { Form, Input, Button, Card, Typography, Space, message } from 'antd'
-import { MailOutlined, ArrowLeftOutlined } from '@ant-design/icons'
+import { MailOutlined, ArrowLeftOutlined, NumberOutlined, LockOutlined } from '@ant-design/icons'
 import { Link, useNavigate } from 'react-router-dom'
+import authAPI from '../../services/api/authAPI'
 
 const { Title, Text } = Typography
 
@@ -10,51 +11,86 @@ const ForgotPassword: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(0) // 0: email, 1: code, 2: password
   const [email, setEmail] = useState('')
+  const [otp, setOtp] = useState('')
   const navigate = useNavigate()
 
   const handleEmail = async () => {
-    const values = await form.validateFields(['email'])
     try {
+      const values = await form.validateFields(['email'])
       setLoading(true)
+      
+      // Call API to send OTP
+      await authAPI.forgotPassword({ email: values.email })
+      
       setEmail(values.email)
-      message.success('Mã xác nhận đã được gửi!')
+      message.success('Mã xác nhận đã được gửi vào email của bạn!')
       setStep(1)
-      form.resetFields()
-    } catch (error) {
-      message.error('Gửi email thất bại')
+      
+      // Clear code field for next step
+      form.setFieldValue('code', '')
+    } catch (error: any) {
+      console.error('Forgot password error:', error)
+      message.error(error.message || 'Không thể gửi email xác nhận. Vui lòng thử lại.')
     } finally {
       setLoading(false)
     }
   }
 
   const handleCode = async () => {
-    const values = await form.validateFields(['code'])
     try {
-      setLoading(true)
-      message.success('Xác nhận thành công!')
+      const values = await form.validateFields(['code'])
+      // Since there is no verify-otp endpoint for password reset specifically,
+      // we just store the OTP and move to the next step to reset password.
+      // The verification will happen when we call resetPassword.
+      setOtp(values.code)
       setStep(2)
-      form.resetFields()
+      
+      // Clear password fields for next step
+      form.setFieldValue('newPassword', '')
+      form.setFieldValue('confirmPassword', '')
     } catch (error) {
-      message.error('Mã xác nhận sai')
+      // Form validation error
+    }
+  }
+
+  const handleReset = async () => {
+    try {
+      const values = await form.validateFields(['newPassword', 'confirmPassword'])
+      
+      if (values.newPassword !== values.confirmPassword) {
+        message.error('Mật khẩu nhập lại không khớp')
+        return
+      }
+
+      setLoading(true)
+      
+      await authAPI.resetPassword({
+        email,
+        otp,
+        newPassword: values.newPassword
+      })
+
+      message.success('Mật khẩu đã được đặt lại thành công!')
+      setTimeout(() => navigate('/login'), 1500)
+    } catch (error: any) {
+      console.error('Reset password error:', error)
+      message.error(error.message || 'Đặt lại mật khẩu thất bại. Mã xác nhận có thể đã hết hạn.')
+      
+      // If error suggests OTP is wrong/expired, maybe go back to step 1
+      if (error.status === 400 || (error.message && error.message.toLowerCase().includes('otp'))) {
+         setStep(1)
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  const handleReset = async () => {
-    const values = await form.validateFields(['newPassword', 'confirmPassword'])
-    try {
-      setLoading(true)
-      if (values.newPassword !== values.confirmPassword) {
-        message.error('Mật khẩu không khớp')
-        return
-      }
-      message.success('Mật khẩu đã được đặt lại!')
-      setTimeout(() => navigate('/login'), 1500)
-    } catch (error) {
-      message.error('Đặt lại mật khẩu thất bại')
-    } finally {
-      setLoading(false)
+  // Handle Enter key
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      if (step === 0) handleEmail()
+      else if (step === 1) handleCode()
+      else handleReset()
     }
   }
 
@@ -76,14 +112,23 @@ const ForgotPassword: React.FC = () => {
 
           <div style={{ textAlign: 'center' }}>
             <Title level={2} style={{ marginBottom: '8px' }}>FEPA</Title>
-            <Text type="secondary">Đặt Lại Mật Khẩu</Text>
+            <Text type="secondary">
+              {step === 0 && 'Quên Mật Khẩu'}
+              {step === 1 && 'Nhập Mã Xác Nhận'}
+              {step === 2 && 'Đặt Lại Mật Khẩu'}
+            </Text>
           </div>
 
-          <Form form={form} layout="vertical" autoComplete="off">
+          <Form 
+            form={form} 
+            layout="vertical" 
+            autoComplete="off"
+            onKeyDown={handleKeyDown}
+          >
             {step === 0 && (
               <>
                 <Form.Item>
-                  <Text type="secondary">Nhập email để nhận mã xác nhận</Text>
+                  <Text type="secondary">Nhập email đã đăng ký để nhận mã xác nhận</Text>
                 </Form.Item>
                 <Form.Item
                   name="email"
@@ -114,16 +159,24 @@ const ForgotPassword: React.FC = () => {
             {step === 1 && (
               <>
                 <Form.Item>
-                  <Text type="secondary">Nhập mã xác nhận gửi tới {email}</Text>
+                  <Text type="secondary">
+                    Mã xác nhận đã được gửi tới <strong>{email}</strong>. 
+                    Vui lòng kiểm tra email (cả mục spam).
+                  </Text>
                 </Form.Item>
                 <Form.Item
                   name="code"
-                  rules={[{ required: true, message: 'Vui lòng nhập mã' }]}
+                  rules={[
+                    { required: true, message: 'Vui lòng nhập mã xác nhận' },
+                    { len: 6, message: 'Mã xác nhận phải có 6 ký tự' }
+                  ]}
                 >
                   <Input
-                    placeholder="000000"
+                    prefix={<NumberOutlined />}
+                    placeholder="Nhập mã 6 số"
                     size="large"
                     maxLength={6}
+                    style={{ letterSpacing: '2px', textAlign: 'center' }}
                   />
                 </Form.Item>
                 <Button
@@ -135,13 +188,18 @@ const ForgotPassword: React.FC = () => {
                 >
                   Tiếp Tục
                 </Button>
+                <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                  <Button type="link" onClick={() => setStep(0)}>
+                    Gửi lại mã?
+                  </Button>
+                </div>
               </>
             )}
 
             {step === 2 && (
               <>
                 <Form.Item>
-                  <Text type="secondary">Nhập mật khẩu mới</Text>
+                  <Text type="secondary">Nhập mật khẩu mới cho tài khoản của bạn</Text>
                 </Form.Item>
                 <Form.Item
                   name="newPassword"
@@ -150,13 +208,21 @@ const ForgotPassword: React.FC = () => {
                     { min: 6, message: 'Tối thiểu 6 ký tự' },
                   ]}
                 >
-                  <Input.Password placeholder="Mật khẩu mới" size="large" />
+                  <Input.Password 
+                    prefix={<LockOutlined />}
+                    placeholder="Mật khẩu mới" 
+                    size="large" 
+                  />
                 </Form.Item>
                 <Form.Item
                   name="confirmPassword"
                   rules={[{ required: true, message: 'Vui lòng xác nhận mật khẩu' }]}
                 >
-                  <Input.Password placeholder="Xác nhận mật khẩu" size="large" />
+                  <Input.Password 
+                    prefix={<LockOutlined />}
+                    placeholder="Xác nhận mật khẩu" 
+                    size="large" 
+                  />
                 </Form.Item>
                 <Button
                   type="primary"
@@ -167,6 +233,11 @@ const ForgotPassword: React.FC = () => {
                 >
                   Đặt Lại Mật Khẩu
                 </Button>
+                <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                  <Button type="link" onClick={() => setStep(1)}>
+                    Quay lại nhập mã?
+                  </Button>
+                </div>
               </>
             )}
           </Form>

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { Layout, Space, Avatar, Dropdown, Button, Badge, List, Typography, Empty } from 'antd'
 import { MenuFoldOutlined, MenuUnfoldOutlined, BellOutlined, LogoutOutlined, UserOutlined, SettingOutlined, CheckCircleOutlined, InfoCircleOutlined, WarningOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useNotifications, useMarkNotificationRead } from '../services/queries'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/vi'
@@ -31,40 +32,12 @@ interface Notification {
 const AdminHeader: React.FC<AdminHeaderProps> = ({ collapsed, onCollapsedChange }) => {
   const navigate = useNavigate()
   const { logout, user } = useAuth()
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
 
-  useEffect(() => {
-    const loadNotifications = () => {
-      const stored = localStorage.getItem('admin_notifications')
-      if (stored) {
-        const allNotifications = JSON.parse(stored)
-        // Filter out budget warning notifications
-        const filtered = allNotifications.filter(
-          (n: Notification) => !n.title.includes('Cảnh báo ngân sách') && !n.message.includes('vượt ngân sách')
-        )
-        // Update localStorage if filtered
-        if (filtered.length !== allNotifications.length) {
-          localStorage.setItem('admin_notifications', JSON.stringify(filtered))
-        }
-        const unread = filtered.filter((n: Notification) => !n.read)
-        setNotifications(unread)
-        setUnreadCount(unread.length)
-      }
-    }
-    
-    loadNotifications()
-    const interval = setInterval(loadNotifications, 30000)
-    
-    // Listen for notifications updates
-    const handleNotificationsUpdate = () => loadNotifications()
-    window.addEventListener('notificationsUpdated', handleNotificationsUpdate)
-    
-    return () => {
-      clearInterval(interval)
-      window.removeEventListener('notificationsUpdated', handleNotificationsUpdate)
-    }
-  }, [])
+  // Use React Query hooks
+  const { data: notifications = [] } = useNotifications()
+  const markAsReadMutation = useMarkNotificationRead()
+
+  const unreadCount = notifications.filter((n: Notification) => !n.read).length
 
   const handleLogout = () => {
     logout()
@@ -72,18 +45,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ collapsed, onCollapsedChange 
   }
 
   const handleMarkAsRead = (id: string) => {
-    const stored = localStorage.getItem('admin_notifications')
-    if (stored) {
-      const allNotifications = JSON.parse(stored)
-      const updated = allNotifications.map((n: Notification) => 
-        n.id === id ? { ...n, read: true } : n
-      )
-      localStorage.setItem('admin_notifications', JSON.stringify(updated))
-      
-      const unread = updated.filter((n: Notification) => !n.read)
-      setNotifications(unread)
-      setUnreadCount(unread.length)
-    }
+    markAsReadMutation.mutate(id)
   }
 
   const getNotificationIcon = (type: string) => {
@@ -106,14 +68,14 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ collapsed, onCollapsedChange 
       </div>
       <List
         dataSource={notifications}
-        renderItem={(item) => (
+        renderItem={(item: Notification) => (
           <List.Item
-            style={{ 
-              padding: '12px 16px', 
+            style={{
+              padding: '12px 16px',
               cursor: 'pointer',
-              background: '#fafafa'
+              background: item.read ? '#fff' : '#e6f7ff'
             }}
-            onClick={() => handleMarkAsRead(item.id)}
+            onClick={() => !item.read && handleMarkAsRead(item.id)}
           >
             <Space direction="vertical" style={{ width: '100%' }} size="small">
               <Space>
@@ -170,7 +132,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ collapsed, onCollapsedChange 
         onClick={() => onCollapsedChange(!collapsed)}
         style={{ fontSize: '16px', width: 48, height: 48 }}
       />
-      
+
       <Space size="large">
         <Dropdown
           dropdownRender={() => notificationItems}
@@ -178,8 +140,8 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ collapsed, onCollapsedChange 
           placement="bottomRight"
         >
           <Badge count={unreadCount} offset={[-5, 5]}>
-            <Button 
-              type="text" 
+            <Button
+              type="text"
               icon={<BellOutlined style={{ fontSize: '18px' }} />}
               style={{ width: 48, height: 48 }}
             />
@@ -188,9 +150,9 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ collapsed, onCollapsedChange 
 
         <Dropdown menu={{ items: userMenuItems }} trigger={['click']} placement="bottomRight">
           <Space style={{ cursor: 'pointer' }}>
-            <Avatar 
-              src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&s=120" 
-              icon={<UserOutlined />} 
+            <Avatar
+              src="https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&s=120"
+              icon={<UserOutlined />}
             />
             <Text>{user?.fullName || 'Admin'}</Text>
           </Space>

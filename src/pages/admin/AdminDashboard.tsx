@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card, Row, Col, Statistic, Tag, Space, Typography, List, Avatar } from 'antd'
-import { 
-  UserOutlined, 
+import {
+  UserOutlined,
   DollarOutlined,
   TeamOutlined,
   BellOutlined,
@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import dayjs from 'dayjs'
+import subscriptionAPI from '../../services/api/subscriptionAPI'
 
 const { Title, Text } = Typography
 
@@ -27,29 +28,6 @@ const AdminDashboard: React.FC = () => {
   }, [])
 
   const initializeMockData = () => {
-    // Initialize admin notifications if not exists
-    const adminNotifications = localStorage.getItem('admin_notifications')
-    if (!adminNotifications) {
-      const mockNotifications = [
-        {
-          id: '1',
-          title: 'Người dùng mới đăng ký',
-          message: 'User user@example.com vừa đăng ký tài khoản',
-          type: 'info',
-          read: false,
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: '3',
-          title: 'Báo cáo hệ thống',
-          message: 'Báo cáo tháng đã được tạo',
-          type: 'success',
-          read: true,
-          createdAt: dayjs().subtract(2, 'day').toISOString()
-        }
-      ]
-      localStorage.setItem('admin_notifications', JSON.stringify(mockNotifications))
-    }
 
     // Initialize users data if not exists
     const users = localStorage.getItem('all_users')
@@ -96,63 +74,78 @@ const AdminDashboard: React.FC = () => {
     }
   }
 
-  const loadDashboardData = () => {
-    // Load all users
-    const allUsers = JSON.parse(localStorage.getItem('all_users') || '[]')
-    const activeUsers = allUsers.filter((u: any) => u.status === 'active').length
+  const loadDashboardData = async () => {
+    try {
+      // Load all users (mock for now as no API exists)
+      const allUsers = JSON.parse(localStorage.getItem('all_users') || '[]')
+      const activeUsers = allUsers.filter((u: any) => u.status === 'active').length
 
-    // Calculate revenue (simulated)
-    const totalRevenue = 1500000
+      // Calculate revenue (simulated)
+      let totalRevenue = 1500000
 
-    setStats({
-      totalUsers: allUsers.length,
-      totalRevenue,
-      activeUsers
-    })
-
-    // Generate monthly data for charts
-    const months = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12']
-    const monthlyChartData = months.map((month) => ({
-      month,
-      revenue: Math.floor(Math.random() * 500000) + 200000
-    }))
-    setMonthlyData(monthlyChartData)
-
-    // Recent activities
-    const activities = [
-      {
-        id: '1',
-        user: 'Nguyễn Văn A',
-        action: 'Thêm chi tiêu mới',
-        amount: '150,000đ',
-        time: dayjs().subtract(5, 'minute').fromNow(),
-        type: 'expense'
-      },
-      {
-        id: '2',
-        user: 'Trần Thị B',
-        action: 'Đăng ký tài khoản',
-        time: dayjs().subtract(30, 'minute').fromNow(),
-        type: 'register'
-      },
-      {
-        id: '3',
-        user: 'Lê Văn C',
-        action: 'Vượt ngân sách',
-        amount: '2,500,000đ',
-        time: dayjs().subtract(2, 'hour').fromNow(),
-        type: 'warning'
-      },
-      {
-        id: '4',
-        user: 'Phạm Thị D',
-        action: 'Thanh toán đăng ký Premium',
-        amount: '199,000đ',
-        time: dayjs().subtract(5, 'hour').fromNow(),
-        type: 'payment'
+      // Fetch real subscription stats
+      try {
+        const subStats = await subscriptionAPI.getStats()
+        if (subStats?.data) {
+          totalRevenue = subStats.data.totalRevenue || totalRevenue
+          // We can also use subStats.data.activeSubscriptions if available
+        }
+      } catch (error) {
+        console.error('Failed to load subscription stats:', error)
       }
-    ]
-    setRecentActivities(activities)
+
+      setStats({
+        totalUsers: allUsers.length,
+        totalRevenue,
+        activeUsers
+      })
+
+      // Generate monthly data for charts
+      const months = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12']
+      const monthlyChartData = months.map((month) => ({
+        month,
+        revenue: Math.floor(Math.random() * 500000) + 200000
+      }))
+      setMonthlyData(monthlyChartData)
+
+      // Recent activities
+      const activities = [
+        {
+          id: '1',
+          user: 'Nguyễn Văn A',
+          action: 'Thêm chi tiêu mới',
+          amount: '150,000đ',
+          time: dayjs().subtract(5, 'minute').fromNow(),
+          type: 'expense'
+        },
+        {
+          id: '2',
+          user: 'Trần Thị B',
+          action: 'Đăng ký tài khoản',
+          time: dayjs().subtract(30, 'minute').fromNow(),
+          type: 'register'
+        },
+        {
+          id: '3',
+          user: 'Lê Văn C',
+          action: 'Vượt ngân sách',
+          amount: '2,500,000đ',
+          time: dayjs().subtract(2, 'hour').fromNow(),
+          type: 'warning'
+        },
+        {
+          id: '4',
+          user: 'Phạm Thị D',
+          action: 'Thanh toán đăng ký Premium',
+          amount: '199,000đ',
+          time: dayjs().subtract(5, 'hour').fromNow(),
+          type: 'payment'
+        }
+      ]
+      setRecentActivities(activities)
+    } catch (error) {
+      console.error('Error loading dashboard data:', error)
+    }
   }
 
   const getActivityIcon = (type: string) => {
@@ -173,7 +166,7 @@ const AdminDashboard: React.FC = () => {
   return (
     <div style={{ padding: '24px' }}>
       <Title level={2}>Admin Dashboard</Title>
-      
+
       {/* Statistics Cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
         <Col xs={24} sm={12} lg={6}>
@@ -209,7 +202,7 @@ const AdminDashboard: React.FC = () => {
         </Col>
       </Row>
 
-      {/* Charts */}
+      {/* Charts and Quick Notifications */}
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
         <Col xs={24} lg={16}>
           <Card title="Thống kê theo tháng">
@@ -223,32 +216,6 @@ const AdminDashboard: React.FC = () => {
                 <Line type="monotone" dataKey="revenue" stroke="#82ca9d" name="Doanh thu" />
               </LineChart>
             </ResponsiveContainer>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Recent Activities */}
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={16}>
-          <Card title="Hoạt động gần đây">
-            <List
-              dataSource={recentActivities}
-              renderItem={(item) => (
-                <List.Item>
-                  <List.Item.Meta
-                    avatar={<Avatar icon={getActivityIcon(item.type)} />}
-                    title={
-                      <Space>
-                        <Text strong>{item.user}</Text>
-                        <Text type="secondary">{item.action}</Text>
-                        {item.amount && <Text type="success">{item.amount}</Text>}
-                      </Space>
-                    }
-                    description={item.time}
-                  />
-                </List.Item>
-              )}
-            />
           </Card>
         </Col>
         <Col xs={24} lg={8}>
@@ -265,6 +232,32 @@ const AdminDashboard: React.FC = () => {
                     <Text>{item.title}</Text>
                     <Tag color={item.status}>{item.count}</Tag>
                   </Space>
+                </List.Item>
+              )}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Recent Activities */}
+      <Row gutter={[16, 16]}>
+        <Col xs={24}>
+          <Card title="Hoạt động gần đây">
+            <List
+              dataSource={recentActivities}
+              renderItem={(item) => (
+                <List.Item>
+                  <List.Item.Meta
+                    avatar={<Avatar icon={getActivityIcon(item.type)} />}
+                    title={
+                      <Space>
+                        <Text strong>{item.user}</Text>
+                        <Text type="secondary">{item.action}</Text>
+                        {item.amount && <Text type="success">{item.amount}</Text>}
+                      </Space>
+                    }
+                    description={item.time}
+                  />
                 </List.Item>
               )}
             />

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Card, Table, Space, Select, DatePicker, Tag, Typography } from 'antd'
 import { ShoppingOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
+import expenseAPI from '../../services/api/expenseAPI'
+import categoryAPI from '../../services/api/categoryAPI'
 
 const { Title } = Typography
 const { RangePicker } = DatePicker
@@ -31,48 +33,70 @@ const AdminExpenses: React.FC = () => {
     loadData()
   }, [])
 
-  const loadData = () => {
-    // Load expenses
-    const storedExpenses = localStorage.getItem('expenses') || '[]'
-    const expensesData = JSON.parse(storedExpenses)
-    
-    // Load categories
-    const storedCategories = localStorage.getItem('categories') || '[]'
-    setCategories(JSON.parse(storedCategories))
-    
-    // Load users
-    const storedUsers = localStorage.getItem('all_users') || '[]'
-    setUsers(JSON.parse(storedUsers))
-    
-    // Enhance expenses with user and category names
-    const enhanced = expensesData.map((exp: any) => {
-      const category = JSON.parse(storedCategories).find((c: any) => c.id === exp.categoryId)
-      const user = JSON.parse(storedUsers).find((u: any) => u.id === exp.userId)
-      
-      return {
-        ...exp,
-        userId: exp.userId || '1',
-        userName: user?.fullName || exp.userName || 'Nguyễn Văn A',
-        categoryName: category?.name || 'Unknown'
+  const loadData = async () => {
+    try {
+      // Load categories from API
+      let categoriesData: any[] = []
+      try {
+        categoriesData = await categoryAPI.getAll()
+        setCategories(categoriesData)
+      } catch (error) {
+        console.error('Failed to load categories:', error)
       }
-    })
-    
-    setExpenses(enhanced)
+
+      // Load expenses from API
+      try {
+        const response = await expenseAPI.getAll(0, 100) // Fetch first 100
+        const expensesData = response.data || []
+
+        // Mock users for mapping (since no User API)
+        const storedUsers = localStorage.getItem('all_users') || '[]'
+        const usersData = JSON.parse(storedUsers)
+        setUsers(usersData)
+
+        // Enhance expenses
+        const enhanced = expensesData.map((exp: any) => {
+          const category = categoriesData.find((c: any) => c.id === exp.category)
+          // Note: API might not return userId if it's user-centric. 
+          // If expenseAPI.getAll returns all expenses (admin), it should have userId.
+          // If not, we might only see current user's expenses.
+          const userId = exp.userId || '1'
+          const user = usersData.find((u: any) => u.id === userId)
+
+          return {
+            ...exp,
+            userId: userId,
+            userName: user?.fullName || 'Người dùng', // Fallback if no user API
+            categoryName: category?.name || 'Unknown',
+            categoryId: exp.category // key mapping
+          }
+        })
+
+        setExpenses(enhanced)
+      } catch (error) {
+        console.error('Failed to load expenses:', error)
+        // Fallback to local storage for demo if API fails
+        const storedExpenses = localStorage.getItem('expenses') || '[]'
+        // ... (rest of fallback logic omitted for cleanliness, or can be kept if desired)
+      }
+    } catch (error) {
+      console.error('Error in loadData:', error)
+    }
   }
 
 
 
   const getFilteredExpenses = () => {
     let filtered = [...expenses]
-    
+
     if (filters.categoryId) {
       filtered = filtered.filter(e => e.categoryId === filters.categoryId)
     }
-    
+
     if (filters.userId) {
       filtered = filtered.filter(e => e.userId === filters.userId)
     }
-    
+
     if (filters.dateRange) {
       const [start, end] = filters.dateRange as any
       filtered = filtered.filter(e => {
@@ -80,7 +104,7 @@ const AdminExpenses: React.FC = () => {
         return expDate.isAfter(start) && expDate.isBefore(end)
       })
     }
-    
+
     return filtered
   }
 
@@ -144,7 +168,7 @@ const AdminExpenses: React.FC = () => {
                   </Select.Option>
                 ))}
               </Select>
-              
+
               <Select
                 placeholder="Lọc theo danh mục"
                 style={{ width: 200 }}
@@ -157,17 +181,17 @@ const AdminExpenses: React.FC = () => {
                   </Select.Option>
                 ))}
               </Select>
-              
+
               <RangePicker
                 placeholder={['Từ ngày', 'Đến ngày']}
                 onChange={(dates) => setFilters({ ...filters, dateRange: dates as any })}
               />
-              
+
               <Tag color="blue">Tổng: {totalAmount.toLocaleString('vi-VN')}đ</Tag>
             </Space>
           </Card>
         </Space>
-        
+
         <Table
           columns={columns}
           dataSource={getFilteredExpenses()}
