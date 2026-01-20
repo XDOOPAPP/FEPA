@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Card, Table, Button, Space, Modal, Form, Input, InputNumber, Tag, Switch, Row, Col, Statistic, Spin, message } from 'antd'
+import { Card, Table, Button, Space, Modal, Form, Input, InputNumber, Tag, Switch, Row, Col, Statistic, Spin, message, Select } from 'antd'
 import { CrownOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { useGetPlans, useCreatePlan, useUpdatePlan, useDeletePlan, useHealthCheck } from '../../services/queries'
@@ -12,9 +12,11 @@ interface SubscriptionPlan extends APIPlan {
 const AdminSubscription: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null)
+  const [isAddingFreePlan, setIsAddingFreePlan] = useState(false)
   const [form] = Form.useForm()
   const [initialFormValues, setInitialFormValues] = useState<any>(null)
   const [messageApi, contextHolder] = message.useMessage()
+  const isFreeField = Form.useWatch('isFree', form)
 
   // React Query hooks
   const { data: plansData, isLoading: isLoadingPlans } = useGetPlans()
@@ -30,7 +32,13 @@ const AdminSubscription: React.FC = () => {
 
   const handleAddPlan = () => {
     setEditingPlan(null)
-    setInitialFormValues({ isActive: true, interval: 'MONTHLY' })
+    setIsAddingFreePlan(false)
+    setInitialFormValues({
+      isActive: true,
+      interval: 'MONTHLY',
+      isFree: false,
+      features: { OCR: false, AI: false }
+    })
     setIsModalVisible(true)
   }
 
@@ -40,12 +48,13 @@ const AdminSubscription: React.FC = () => {
       return
     }
     setEditingPlan(null)
+    setIsAddingFreePlan(true)
     setInitialFormValues({
       name: 'Free',
       price: 0,
       isActive: true,
       interval: 'LIFETIME',
-      features: 'Cơ bản',
+      features: { OCR: false, AI: false },
       isFree: true
     })
     setIsModalVisible(true)
@@ -53,6 +62,7 @@ const AdminSubscription: React.FC = () => {
 
   const handleEditPlan = (plan: SubscriptionPlan) => {
     setEditingPlan(plan)
+    setIsAddingFreePlan(false)
     setIsModalVisible(true)
   }
 
@@ -62,13 +72,20 @@ const AdminSubscription: React.FC = () => {
     if (editingPlan) {
       form.setFieldsValue({
         ...editingPlan,
-        features: editingPlan.features.join('\n'),
+        isFree: editingPlan.isFree,
+        'features.OCR': editingPlan.features?.OCR || false,
+        'features.AI': editingPlan.features?.AI || false,
       })
     } else {
       form.resetFields()
       form.setFieldsValue({ isActive: true, interval: 'MONTHLY' })
       if (initialFormValues) {
-        form.setFieldsValue(initialFormValues)
+        form.setFieldsValue({
+          ...initialFormValues,
+          isFree: initialFormValues.isFree || false,
+          'features.OCR': initialFormValues.features?.OCR || false,
+          'features.AI': initialFormValues.features?.AI || false,
+        })
         setInitialFormValues(null)
       }
     }
@@ -94,7 +111,10 @@ const AdminSubscription: React.FC = () => {
   const handleSavePlan = async () => {
     try {
       const values = await form.validateFields()
-      const features = values.features.split('\n').filter((f: string) => f.trim())
+      const features = {
+        OCR: values['features.OCR'] || false,
+        AI: values['features.AI'] || false,
+      }
 
       // Validate Singleton Free Plan
       const isFree = form.getFieldValue('isFree') || values.price === 0
@@ -102,25 +122,42 @@ const AdminSubscription: React.FC = () => {
       if (isFree) {
         const hasFree = plans.some(p => p.isFree && p.id !== editingPlan?.id)
         if (hasFree) {
-            messageApi.error('Đã tồn tại gói miễn phí! Không thể tạo thêm.')
+          messageApi.error('Đã tồn tại gói miễn phí! Không thể tạo thêm.')
           return
         }
       }
 
-      const planData = {
-        ...values,
+      const { 'features.OCR': _, 'features.AI': __, ...cleanValues } = values
+      const planData: any = {
+        ...cleanValues,
         features,
-        isFree: isFree || false // Ensure backend gets this field
+      }
+
+      // If it's a free plan (either existing or new), force price 0 and interval LIFETIME
+      if (isFree) {
+        planData.price = 0
+        planData.interval = 'LIFETIME'
       }
 
       if (editingPlan) {
         // Update plan
+        // Backend restricts updating isFree and isActive for existing free plans
+        // So we remove them from the payload if it's an update
+        if (editingPlan.isFree) {
+          delete planData.isFree
+          delete planData.isActive
+        } else {
+          // For non-free plans, ensure isFree is false if not specified
+          planData.isFree = planData.isFree || false
+        }
+
         await updatePlanMutation.mutateAsync({
           planId: editingPlan.id,
           data: planData,
         })
       } else {
         // Create new plan
+        planData.isFree = isFree || false
         await createPlanMutation.mutateAsync(planData)
       }
 
@@ -169,6 +206,17 @@ const AdminSubscription: React.FC = () => {
         }
         return intervalMap[interval as keyof typeof intervalMap]
       },
+    },
+    {
+      title: 'Tính năng',
+      key: 'features',
+      render: (_, record) => (
+        <Space>
+          {record.features?.OCR && <Tag color="green">OCR</Tag>}
+          {record.features?.AI && <Tag color="purple">AI</Tag>}
+          {!record.features?.OCR && !record.features?.AI && <span style={{ color: '#ccc' }}>Không có</span>}
+        </Space>
+      ),
     },
     {
       title: 'Trạng thái',
@@ -283,7 +331,7 @@ const AdminSubscription: React.FC = () => {
         </Card>
 
         <Modal
-          title={editingPlan ? 'Sửa gói Premium' : 'Thêm gói Premium mới'}
+          title={editingPlan ? 'Sửa gói Premium' : isAddingFreePlan ? 'Thêm gói miễn phí mới' : 'Thêm gói Premium mới'}
           open={isModalVisible}
           onOk={handleSavePlan}
           onCancel={() => {
@@ -306,6 +354,10 @@ const AdminSubscription: React.FC = () => {
               <Input placeholder="Ví dụ: Premium, Basic..." />
             </Form.Item>
 
+            <Form.Item name="isFree" hidden initialValue={false}>
+              <Input type="hidden" />
+            </Form.Item>
+
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item
@@ -318,7 +370,7 @@ const AdminSubscription: React.FC = () => {
                     min={0}
                     formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                     placeholder="99000"
-                    disabled={form.getFieldValue('isFree') === true && !editingPlan} // Lock if creating Free Plan
+                    disabled={isFreeField === true} // Lock if it's a Free Plan
                   />
                 </Form.Item>
               </Col>
@@ -329,21 +381,30 @@ const AdminSubscription: React.FC = () => {
                   rules={[{ required: true, message: 'Vui lòng chọn chu kỳ' }]}
                   initialValue="MONTHLY"
                 >
-                  <select style={{ width: '100%', padding: '8px', borderRadius: '2px', border: '1px solid #d9d9d9' }}>
-                    <option value="MONTHLY">Hàng tháng</option>
-                    <option value="YEARLY">Hàng năm</option>
-                    <option value="LIFETIME">Trọn đời</option>
-                  </select>
+                  <Select style={{ width: '100%' }} disabled={isFreeField === true}>
+                    <Select.Option value="MONTHLY">Hàng tháng</Select.Option>
+                    <Select.Option value="YEARLY">Hàng năm</Select.Option>
+                    <Select.Option value="LIFETIME">Trọn đời</Select.Option>
+                  </Select>
                 </Form.Item>
               </Col>
             </Row>
 
-            <Form.Item
-              name="features"
-              label="Tính năng (mỗi dòng 1 tính năng)"
-              rules={[{ required: true, message: 'Vui lòng nhập tính năng' }]}
-            >
-              <Input.TextArea rows={5} placeholder="Không giới hạn danh mục&#10;Không giới hạn giao dịch&#10;OCR không giới hạn" />
+            <Form.Item label="Tính năng">
+              <Row>
+                <Col span={12}>
+                  <Form.Item name="features.OCR" valuePropName="checked" noStyle>
+                    <Switch checkedChildren="OCR" unCheckedChildren="OCR" />
+                  </Form.Item>
+                  <span style={{ marginLeft: 8 }}>Nhận diện văn bản (OCR)</span>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="features.AI" valuePropName="checked" noStyle>
+                    <Switch checkedChildren="AI" unCheckedChildren="AI" />
+                  </Form.Item>
+                  <span style={{ marginLeft: 8 }}>Phân tích AI</span>
+                </Col>
+              </Row>
             </Form.Item>
 
             <Form.Item name="isActive" label="Trạng thái" valuePropName="checked" initialValue={true}>

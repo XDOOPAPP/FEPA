@@ -31,7 +31,7 @@ export const API_CONFIG = {
     PLANS: '/subscriptions/plans',                                    // GET
     PLAN_DETAIL: (id: string) => `/subscriptions/plans/${id}`,        // GET
     HEALTH: '/subscriptions/health',                                  // GET
-    
+
     // User (requires x-user-id)
     CURRENT: '/subscriptions/current',                                // GET
     SUBSCRIBE: '/subscriptions',                                      // POST
@@ -39,7 +39,7 @@ export const API_CONFIG = {
     HISTORY: '/subscriptions/history',                                // GET
     FEATURES: '/subscriptions/features',                              // GET
     CHECK_FEATURE: '/subscriptions/check',                            // GET ?feature=NAME
-    
+
     // Admin - Plans Management
     CREATE_PLAN: '/subscriptions/plans',                              // POST
     UPDATE_PLAN: (id: string) => `/subscriptions/plans/${id}`,        // PATCH

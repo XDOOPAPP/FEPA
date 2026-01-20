@@ -6,7 +6,7 @@ export interface CreatePlanRequest {
   name: string
   price: number
   interval: 'MONTHLY' | 'YEARLY' | 'LIFETIME'
-  features: string[]
+  features: { OCR: boolean; AI: boolean }
   isFree?: boolean
   isActive?: boolean
 }
@@ -14,7 +14,7 @@ export interface CreatePlanRequest {
 export interface UpdatePlanRequest {
   name?: string
   price?: number
-  features?: string[]
+  features?: { OCR?: boolean; AI?: boolean }
   isFree?: boolean
   isActive?: boolean
 }
@@ -25,7 +25,7 @@ export interface SubscriptionPlan {
   name: string
   price: number
   interval: 'MONTHLY' | 'YEARLY' | 'LIFETIME'
-  features: string[]
+  features: { OCR: boolean; AI: boolean }
   isFree: boolean
   isActive: boolean
   createdAt: string
