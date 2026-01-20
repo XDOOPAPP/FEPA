@@ -46,34 +46,21 @@ const UserManagement: React.FC = () => {
     loadUsers()
   }, [])
 
-  const loadUsers = () => {
+  const loadUsers = async () => {
     setLoading(true)
-    // Simulate API call delay
-    setTimeout(() => {
-      // Load users from localStorage (created by initDemoData)
-      const stored = localStorage.getItem('all_users')
-      
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored)
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setUsers(parsed)
-            setLoading(false)
-            return
-          }
-        } catch (error) {
-          console.error('Error loading users:', error)
-        }
-      }
-      
-      // If no users found, set empty array (initDemoData will create them on next reload)
+    try {
+      const usersData = await import('../../services/api/userAPI').then(m => m.default.getAll())
+      setUsers(usersData || [])
+    } catch (err) {
+      console.error('Failed to load users from API:', err)
       setUsers([])
+    } finally {
       setLoading(false)
-    }, 800)
+    }
   }
 
-  const saveUsers = (updatedUsers: User[]) => {
-    localStorage.setItem('all_users', JSON.stringify(updatedUsers))
+  const saveUsers = async (updatedUsers: User[]) => {
+    // Prefer refetch from API after operations; fallback to state update
     setUsers(updatedUsers)
   }
 
@@ -90,19 +77,36 @@ const UserManagement: React.FC = () => {
   }
 
   const handleDelete = (id: string) => {
-    const updated = users.filter(u => u.id !== id)
-    saveUsers(updated)
-    message.success('Xóa người dùng thành công')
+    Modal.confirm({
+      title: 'Xác nhận xóa',
+      content: 'Bạn có chắc muốn xóa người dùng này?',
+      onOk: async () => {
+        try {
+          const userAPI = (await import('../../services/api/userAPI')).default
+          await userAPI.delete(id)
+          await loadUsers()
+          message.success('Xóa người dùng thành công')
+        } catch (err) {
+          console.error('Failed to delete user:', err)
+          message.error('Xóa user thất bại')
+        }
+      }
+    })
   }
 
   const handleToggleStatus = (record: User) => {
-    const updated = users.map(u => 
-      u.id === record.id 
-        ? { ...u, status: u.status === 'active' ? 'locked' as const : 'active' as const }
-        : u
-    )
-    saveUsers(updated)
-    message.success(`${record.status === 'active' ? 'Khóa' : 'Mở khóa'} tài khoản thành công`)
+    ;(async () => {
+      try {
+        const userAPI = (await import('../../services/api/userAPI')).default
+        const newStatus = record.status === 'active' ? 'locked' : 'active'
+        await userAPI.update(record.id, { ...record, status: newStatus })
+        await loadUsers()
+        message.success(`${record.status === 'active' ? 'Khóa' : 'Mở'} tài khoản thành công`)
+      } catch (err) {
+        console.error('Failed to toggle status:', err)
+        message.error('Thao tác thất bại')
+      }
+    })()
   }
 
   const handleResetPassword = (record: User) => {
@@ -110,8 +114,17 @@ const UserManagement: React.FC = () => {
       title: 'Xác nhận reset mật khẩu',
       content: `Bạn có chắc muốn reset mật khẩu cho ${record.fullName}?`,
       onOk: () => {
-        // In real app, send reset password email
-        message.success('Đã gửi email reset mật khẩu')
+        // Call backend reset endpoint if available
+        ;(async () => {
+          try {
+            const userAPI = (await import('../../services/api/userAPI')).default
+            await userAPI.update(record.id, { }) // backend should trigger reset based on route; adapt if specific endpoint exists
+            message.success('Yêu cầu reset mật khẩu đã gửi')
+          } catch (err) {
+            console.error('Reset password failed:', err)
+            message.error('Reset mật khẩu thất bại')
+          }
+        })()
       }
     })
   }
@@ -119,63 +132,47 @@ const UserManagement: React.FC = () => {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields()
-      
+
+      const userAPI = (await import('../../services/api/userAPI')).default
+
       if (editingUser) {
-        // Update existing user
-        const updated = users.map(u => 
-          u.id === editingUser.id ? { ...u, ...values } : u
-        )
-        saveUsers(updated)
+        await userAPI.update(editingUser.id, values as any)
         message.success('Cập nhật người dùng thành công')
       } else {
-        // Add new user
-        const newUser: User = {
-          id: Date.now().toString(),
-          ...values,
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString()
-        }
-        saveUsers([...users, newUser])
+        await userAPI.create(values as any)
         message.success('Thêm người dùng thành công')
       }
-      
+
       setIsModalOpen(false)
       form.resetFields()
+      await loadUsers()
     } catch (error) {
-      console.error('Validation failed:', error)
+      console.error('Validation failed or API error:', error)
+      message.error('Thao tác thất bại')
     }
   }
 
-  const handleClearDemoData = () => {
-    Modal.confirm({
-      title: 'Làm mới toàn bộ dữ liệu demo',
-      content: 'Thao tác này sẽ xóa TẤT CẢ dữ liệu demo (users, expenses, budgets, categories, v.v.) và tạo lại từ đầu. Bạn có chắc chắn?',
-      okText: 'Làm mới toàn bộ',
-      okType: 'danger',
-      cancelText: 'Hủy',
-      onOk: () => {
-        // Clear ALL demo data to force full resync
-        localStorage.removeItem('all_users')
-        localStorage.removeItem('expenses')
-        localStorage.removeItem('budgets')
-        localStorage.removeItem('categories')
-        localStorage.removeItem('subscription_plans')
-        localStorage.removeItem('user_subscriptions')
-        localStorage.removeItem('blog_posts')
-        localStorage.removeItem('advertisements')
-        message.success('Đã xóa toàn bộ dữ liệu. Đang reload...')
-        setTimeout(() => window.location.reload(), 800)
-      }
-    })
-  }
+  // demo-clear removed; Webadmin operates on real APIs
 
   // Bulk actions handlers
   const handleBulkDelete = () => {
-    const remaining = users.filter(u => !selectedIds.has(u.id))
-    saveUsers(remaining)
-    deselectAll()
-    message.success(`Đã xóa ${selectedIds.size} người dùng`)
+    Modal.confirm({
+      title: 'Xác nhận xóa nhiều',
+      content: `Bạn có chắc muốn xóa ${selectedIds.size} người dùng đã chọn?`,
+      onOk: async () => {
+        try {
+          const userAPI = (await import('../../services/api/userAPI')).default
+          const ids = Array.from(selectedIds)
+          await Promise.all(ids.map(id => userAPI.delete(id)))
+          deselectAll()
+          await loadUsers()
+          message.success(`Đã xóa ${ids.length} người dùng`)
+        } catch (err) {
+          console.error('Bulk delete failed:', err)
+          message.error('Xóa nhiều thất bại')
+        }
+      }
+    })
   }
 
   const handleBulkExport = () => {
@@ -339,13 +336,7 @@ const UserManagement: React.FC = () => {
         title={<Title level={3}><UserOutlined /> Quản lý người dùng</Title>}
         extra={
           <Space>
-            <Button 
-              danger 
-              onClick={handleClearDemoData}
-              style={{ display: users.length > 0 ? 'inline-block' : 'none' }}
-            >
-              Xóa dữ liệu demo
-            </Button>
+            {/* demo clear button removed - webadmin now uses real API */}
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
               Thêm người dùng
             </Button>

@@ -49,9 +49,15 @@ const AdminExpenses: React.FC = () => {
         const response = await expenseAPI.getAll(0, 100) // Fetch first 100
         const expensesData = response.data || []
 
-        // Mock users for mapping (since no User API)
-        const storedUsers = localStorage.getItem('all_users') || '[]'
-        const usersData = JSON.parse(storedUsers)
+        // Load users from API
+        let usersData: any[] = []
+        try {
+          const userAPI = (await import('../../services/api/userAPI')).default
+          usersData = await userAPI.getAll()
+        } catch (err) {
+          console.error('Failed to load users from API:', err)
+          usersData = []
+        }
         setUsers(usersData)
 
         // Enhance expenses
@@ -75,9 +81,6 @@ const AdminExpenses: React.FC = () => {
         setExpenses(enhanced)
       } catch (error) {
         console.error('Failed to load expenses:', error)
-        // Fallback to local storage for demo if API fails
-        const storedExpenses = localStorage.getItem('expenses') || '[]'
-        // ... (rest of fallback logic omitted for cleanliness, or can be kept if desired)
       }
     } catch (error) {
       console.error('Error in loadData:', error)

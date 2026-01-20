@@ -48,8 +48,8 @@ Tạo file `.env` từ `.env.example`:
 
 ```env
 PORT=3005
-MONGO_URL=mongodb://localhost:27017/subscription_db
-RABBITMQ_URL=amqp://guest:guest@localhost:5672
+MONGO_URL=mongodb://76.13.21.84:27017/subscription_db
+RABBITMQ_URL=amqp://guest:guest@76.13.21.84:5672
 ```
 
 ### 4. Chạy Service
@@ -67,7 +67,7 @@ RABBITMQ_URL=amqp://guest:guest@localhost:5672
 
 ## 📡 API Endpoints
 
-Service chạy mặc định tại `http://localhost:3005`.
+Service chạy mặc định tại `http://76.13.21.84:3005`.
 
 ### Public
 
@@ -103,7 +103,7 @@ Service chạy mặc định tại `http://localhost:3005`.
 
 Bạn có thể test trực tiếp bằng Postman hoặc Thunder Client.
 
-> **Lưu ý quan trọng**: Khi test trực tiếp service này (`localhost:3005`), bạn **BẮT BUỘC** phải giả lập header `x-user-id` (giả lập việc request đã đi qua Gateway).
+> **Lưu ý quan trọng**: Khi test trực tiếp service này (`76.13.21.84:3005`), bạn **BẮT BUỘC** phải giả lập header `x-user-id` (giả lập việc request đã đi qua Gateway).
 
 ### 1. Create Plan Flow (Admin)
 

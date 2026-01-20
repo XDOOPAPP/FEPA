@@ -4,8 +4,8 @@
  */
 
 // ========== BASE URLs ==========
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://10.74.11.14:3000/api/v1'
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://76.13.21.84:3000/api/v1'
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://76.13.21.84:3000'
 
 // ========== API ENDPOINTS ==========
 export const API_CONFIG = {
@@ -56,8 +56,9 @@ export const API_CONFIG = {
 
   // ===== CATEGORY ENDPOINTS =====
   CATEGORIES: {
-    LIST: '/categories',
-    DETAIL: (id: string) => `/categories/${id}`,
+    // Expense service exposes categories under /expenses/categories
+    LIST: '/expenses/categories',
+    DETAIL: (id: string) => `/expenses/categories/${id}`,
   },
 
   // ===== EXPENSE ENDPOINTS =====

@@ -33,19 +33,7 @@ const AdminBudgets: React.FC = () => {
     loadData()
   }, [])
 
-  const clearAndReloadBudgets = () => {
-    Modal.confirm({
-      title: 'Làm mới dữ liệu ngân sách demo?',
-      icon: <ExclamationCircleOutlined />,
-      content: 'Thao tác này sẽ xóa tất cả ngân sách hiện tại và tạo mới dữ liệu demo cho tất cả người dùng. Bạn có chắc chắn?',
-      okText: 'Làm mới',
-      cancelText: 'Hủy',
-      onOk: () => {
-        localStorage.removeItem('budgets')
-        window.location.reload()
-      }
-    })
-  }
+  // Removed demo refresh - Budgets loaded from API
 
   const loadData = async () => {
     try {
@@ -59,9 +47,14 @@ const AdminBudgets: React.FC = () => {
       }
 
       // Load users (mock)
-      const storedUsers = localStorage.getItem('all_users') || '[]'
-      const usersData = JSON.parse(storedUsers)
-      setUsers(usersData)
+      try {
+        const userAPI = (await import('../../services/api/userAPI')).default
+        const usersData = await userAPI.getAll()
+        setUsers(usersData || [])
+      } catch (err) {
+        console.error('Failed to load users from API:', err)
+        setUsers([])
+      }
 
       // Load budgets
       try {
@@ -88,7 +81,6 @@ const AdminBudgets: React.FC = () => {
         setBudgets(enhanced)
       } catch (error) {
         console.error('Failed to load budgets:', error)
-        // Fallback logic could go here
       }
     } catch (error) {
       console.error('Error in loadData:', error)
@@ -192,16 +184,7 @@ const AdminBudgets: React.FC = () => {
         <Col xs={24} lg={8}>
           <Card
             title={<Title level={4}>Danh sách người dùng</Title>}
-            extra={
-              <Button
-                type="primary"
-                icon={<ReloadOutlined />}
-                onClick={clearAndReloadBudgets}
-                size="small"
-              >
-                Làm mới demo
-              </Button>
-            }
+            extra={null}
           >
             <div style={{ maxHeight: '600px', overflowY: 'auto' }}>
               {users.map(user => {

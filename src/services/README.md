@@ -30,8 +30,8 @@ Hướng dẫn tích hợp backend sau khi các services đã hoàn thành.
 
 File `.env.local` đã được tạo:
 ```env
-VITE_API_BASE_URL=http://localhost:3000/api/v1
-VITE_SOCKET_URL=http://localhost:3000
+VITE_API_BASE_URL=http://76.13.21.84:3000/api/v1
+VITE_SOCKET_URL=http://76.13.21.84:3000
 VITE_APP_ENV=development
 VITE_ENABLE_SOCKET=true
 VITE_ENABLE_MOCK_DATA=false

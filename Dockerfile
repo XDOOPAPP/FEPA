@@ -24,7 +24,7 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 # Copy nginx configuration (optional, nginx default works for SPA)
 RUN echo 'server { \
     listen 80; \
-    server_name localhost; \
+    server_name 76.13.21.84; \
     root /usr/share/nginx/html; \
     index index.html; \
     location / { \

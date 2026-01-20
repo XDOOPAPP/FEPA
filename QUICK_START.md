@@ -5,15 +5,15 @@
 **TẤT CẢ SERVICES ĐANG CHẠY:**
 
 1. ✅ **MongoDB**: Port 27017 (Docker container: auth-mongodb)
-2. ✅ **Auth Service**: http://localhost:3000
-3. ✅ **Webadmin**: http://localhost:5174
+2. ✅ **Auth Service**: http://76.13.21.84:3000
+3. ✅ **Webadmin**: http://76.13.21.84:5174
 
 ---
 
 ## 🧪 Hướng Dẫn Test
 
 ### Bước 1: Mở Webadmin
-Truy cập: **http://localhost:5174**
+Truy cập: **http://76.13.21.84:5174**
 
 ### Bước 2: Test Đăng Ký (Register)
 

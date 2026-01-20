@@ -18,6 +18,9 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate()
   const { login } = useAuth()
 
+  const { user } = useAuth()
+  const [messageApi, contextHolder] = message.useMessage()
+
   // Load saved credentials if "remember me" was checked
   useEffect(() => {
     const savedEmail = localStorage.getItem('rememberedEmail')
@@ -33,6 +36,14 @@ const LoginPage: React.FC = () => {
       // Login as admin only
       await login(values.email, values.password)
 
+      // After login, check role from context
+      const currentUser = sessionStorage.getItem('user') ? JSON.parse(sessionStorage.getItem('user') as string) : user
+      if (!currentUser || currentUser.role !== 'ADMIN') {
+        messageApi.error('Bạn không có quyền truy cập trang quản trị')
+        setLoading(false)
+        return
+      }
+
       // Handle "Remember me" checkbox
       if (values.remember) {
         localStorage.setItem('rememberedEmail', values.email)
@@ -40,11 +51,11 @@ const LoginPage: React.FC = () => {
         localStorage.removeItem('rememberedEmail')
       }
 
-      message.success('Đăng nhập thành công!')
+      messageApi.success('Đăng nhập thành công!')
       navigate('/admin/dashboard')
     } catch (error: any) {
       console.error('Login error:', error)
-      message.error(error.message || 'Đăng nhập thất bại')
+      messageApi.error(error.message || 'Đăng nhập thất bại')
     } finally {
       setLoading(false)
     }
@@ -59,6 +70,7 @@ const LoginPage: React.FC = () => {
       background: 'linear-gradient(135deg, #5490c1ff 0%, #4d91efff 100%)',
       padding: '20px'
     }}>
+      {contextHolder}
       <Card style={{ width: '100%', maxWidth: '400px' }}>
         <Space direction="vertical" style={{ width: '100%' }} size="large">
           <div style={{ textAlign: 'center' }}>
