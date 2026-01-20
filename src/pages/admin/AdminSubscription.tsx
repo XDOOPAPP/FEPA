@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Card, Table, Button, Space, Modal, Form, Input, InputNumber, Tag, Switch, Row, Col, Statistic, Spin } from 'antd'
+import React, { useState, useEffect } from 'react'
+import { Card, Table, Button, Space, Modal, Form, Input, InputNumber, Tag, Switch, Row, Col, Statistic, Spin, message } from 'antd'
 import { CrownOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import { useGetPlans, useCreatePlan, useUpdatePlan, useDeletePlan, useHealthCheck } from '../../services/queries'
@@ -13,6 +13,8 @@ const AdminSubscription: React.FC = () => {
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null)
   const [form] = Form.useForm()
+  const [initialFormValues, setInitialFormValues] = useState<any>(null)
+  const [messageApi, contextHolder] = message.useMessage()
 
   // React Query hooks
   const { data: plansData, isLoading: isLoadingPlans } = useGetPlans()
@@ -28,19 +30,17 @@ const AdminSubscription: React.FC = () => {
 
   const handleAddPlan = () => {
     setEditingPlan(null)
-    form.resetFields()
-    form.setFieldsValue({ isActive: true, interval: 'MONTHLY' })
+    setInitialFormValues({ isActive: true, interval: 'MONTHLY' })
     setIsModalVisible(true)
   }
 
   const handleAddFreePlan = () => {
     if (plans.some(p => p.isFree)) {
-      message.warning('Chỉ được phép có 1 gói miễn phí!')
+      messageApi.warning('Chỉ được phép có 1 gói miễn phí!')
       return
     }
     setEditingPlan(null)
-    form.resetFields()
-    form.setFieldsValue({
+    setInitialFormValues({
       name: 'Free',
       price: 0,
       isActive: true,
@@ -53,12 +53,26 @@ const AdminSubscription: React.FC = () => {
 
   const handleEditPlan = (plan: SubscriptionPlan) => {
     setEditingPlan(plan)
-    form.setFieldsValue({
-      ...plan,
-      features: plan.features.join('\n'),
-    })
     setIsModalVisible(true)
   }
+
+  useEffect(() => {
+    if (!isModalVisible) return
+
+    if (editingPlan) {
+      form.setFieldsValue({
+        ...editingPlan,
+        features: editingPlan.features.join('\n'),
+      })
+    } else {
+      form.resetFields()
+      form.setFieldsValue({ isActive: true, interval: 'MONTHLY' })
+      if (initialFormValues) {
+        form.setFieldsValue(initialFormValues)
+        setInitialFormValues(null)
+      }
+    }
+  }, [isModalVisible, editingPlan, form, initialFormValues])
 
   const handleDeletePlan = (planId: string) => {
     Modal.confirm({
@@ -88,7 +102,7 @@ const AdminSubscription: React.FC = () => {
       if (isFree) {
         const hasFree = plans.some(p => p.isFree && p.id !== editingPlan?.id)
         if (hasFree) {
-          message.error('Đã tồn tại gói miễn phí! Không thể tạo thêm.')
+            messageApi.error('Đã tồn tại gói miễn phí! Không thể tạo thêm.')
           return
         }
       }
@@ -209,6 +223,7 @@ const AdminSubscription: React.FC = () => {
   return (
     <Spin spinning={isLoadingPlans} indicator={<LoadingOutlined style={{ fontSize: 48 }} />}>
       <div style={{ padding: '24px' }}>
+        {contextHolder}
         {/* Health Check Badge */}
         <div style={{ marginBottom: '16px' }}>
           <Tag
@@ -276,6 +291,8 @@ const AdminSubscription: React.FC = () => {
             form.resetFields()
           }}
           width={600}
+          destroyOnHidden={true}
+          forceRender={true}
           okText="Lưu"
           cancelText="Hủy"
           confirmLoading={isSaving}

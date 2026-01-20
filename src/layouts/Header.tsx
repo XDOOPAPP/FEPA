@@ -189,7 +189,7 @@ const Header: React.FC<HeaderProps> = ({ collapsed, onCollapsedChange }) => {
           </Tooltip>
         )}
         <Dropdown 
-          dropdownRender={() => notificationItems}
+          popupRender={() => notificationItems}
           trigger={['click']}
           placement="bottomRight"
         >

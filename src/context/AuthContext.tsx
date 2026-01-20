@@ -168,6 +168,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('refreshToken');
   };
 
+  // changePassword removed for admin users
+
   const updateProfile = (data: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...data };
@@ -182,7 +184,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     logout,
     loading,
-    updateProfile
+    updateProfile,
+    // changePassword intentionally omitted
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

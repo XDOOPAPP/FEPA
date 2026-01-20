@@ -18,22 +18,14 @@ const AdminReports: React.FC = () => {
   useEffect(() => {
     loadReportData()
   }, [reportType, dateRange])
-
   const loadReportData = async () => {
     try {
-      const [expensesRes, budgetsRes, categoriesRes, usersRes] = await Promise.all([
-        import('../../services/api/expenseAPI').then(m => m.default.getAll(0, 100)).catch(() => ({ data: [] })),
-        import('../../services/api/budgetAPI').then(m => m.default.getAll()).catch(() => ({ data: [] })),
-        import('../../services/api/categoryAPI').then(m => m.default.getAll()).catch(() => ([])),
-        import('../../services/api/userAPI').then(m => m.default.getAll()).catch(() => ([])),
-      ])
+      // Core management APIs removed — use empty data / mocked stats instead
+      const expenses: any[] = []
+      const budgets: any[] = []
+      const categories: any[] = []
+      const users: any[] = []
 
-      const expenses = (expensesRes && (expensesRes.data || expensesRes)) || []
-      const budgets = (budgetsRes && (budgetsRes.data || budgetsRes)) || []
-      const categories = categoriesRes || []
-      const users = usersRes || []
-
-      // Monthly/Yearly trend data (still mocked but based on real totals)
       if (reportType === 'monthly') {
         const months = Array.from({ length: 12 }, (_, i) => {
           const month = dayjs().month(i)
@@ -58,52 +50,15 @@ const AdminReports: React.FC = () => {
         setMonthlyData(years)
       }
 
-      // Category breakdown
-      const categoryBreakdown = categories.map((cat: any) => {
-        const categoryExpenses = expenses.filter((exp: any) => exp.categoryId === cat.id)
-        const total = categoryExpenses.reduce((sum: number, exp: any) => sum + exp.amount, 0)
-        return {
-          name: cat.name,
-          value: total,
-          count: categoryExpenses.length
-        }
-      }).filter((cat: any) => cat.value > 0)
-      setCategoryData(categoryBreakdown)
-
-      // User expense ranking
-      const userRanking = users.map((user: any) => {
-        const userExpenses = expenses.filter((exp: any) => exp.userId === user.id)
-        const total = userExpenses.reduce((sum: number, exp: any) => sum + exp.amount, 0)
-        const userBudgets = budgets.filter((b: any) => b.userId === user.id)
-        const totalBudget = userBudgets.reduce((sum: number, b: any) => sum + b.amount, 0)
-        
-        return {
-          userId: user.id,
-          userName: user.fullName,
-          totalExpenses: total,
-          totalBudget: totalBudget,
-          expenseCount: userExpenses.length,
-          overBudget: total > totalBudget
-        }
-      }).sort((a: any, b: any) => b.totalExpenses - a.totalExpenses)
-      setUserExpenseData(userRanking)
-
-      // Comparison data
-      const currentMonth = expenses.filter((exp: any) => 
-        dayjs(exp.date).isSame(dayjs(), 'month')
-      ).reduce((sum: number, exp: any) => sum + exp.amount, 0)
-
-      const lastMonth = expenses.filter((exp: any) => 
-        dayjs(exp.date).isSame(dayjs().subtract(1, 'month'), 'month')
-      ).reduce((sum: number, exp: any) => sum + exp.amount, 0)
-
-      const changePercent = lastMonth > 0 ? ((currentMonth - lastMonth) / lastMonth * 100).toFixed(1) : 0
+      // No categories/expenses/budgets: empty breakdowns
+      setCategoryData([])
+      setUserExpenseData([])
 
       setComparisonData({
-        currentMonth,
-        lastMonth,
-        changePercent,
-        isIncrease: currentMonth > lastMonth
+        currentMonth: 0,
+        lastMonth: 0,
+        changePercent: 0,
+        isIncrease: false
       })
     } catch (err) {
       console.error('Failed to load report data:', err)

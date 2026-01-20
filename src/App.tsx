@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { ConfigProvider } from 'antd'
+import { ConfigProvider, App as AntdApp } from 'antd'
 import { QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 import { AuthProvider } from './context/AuthContext'
@@ -15,9 +15,7 @@ import ClearStorage from './pages/ClearStorage'
 // Admin pages
 import AdminDashboard from './pages/admin/AdminDashboard'
 import UserManagement from './pages/admin/UserManagement'
-import AdminExpenses from './pages/admin/AdminExpenses'
-import AdminBudgets from './pages/admin/AdminBudgets'
-import AdminCategories from './pages/admin/AdminCategories'
+// Core management pages removed from routes
 import AdminReports from './pages/admin/AdminReports'
 import AdminNotifications from './pages/admin/AdminNotifications'
 import AdminSubscription from './pages/admin/AdminSubscription'
@@ -38,6 +36,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ConfigProvider theme={themeConfig}>
+        <AntdApp>
         <AuthProvider>
           <Router>
           <Routes>
@@ -69,38 +68,7 @@ function App() {
               } 
             />
             
-            <Route 
-              path="/admin/expenses" 
-              element={
-                <AdminRoute>
-                  <AdminLayout>
-                    <AdminExpenses />
-                  </AdminLayout>
-                </AdminRoute>
-              } 
-            />
-            
-            <Route 
-              path="/admin/budgets" 
-              element={
-                <AdminRoute>
-                  <AdminLayout>
-                    <AdminBudgets />
-                  </AdminLayout>
-                </AdminRoute>
-              } 
-            />
-            
-            <Route 
-              path="/admin/categories" 
-              element={
-                <AdminRoute>
-                  <AdminLayout>
-                    <AdminCategories />
-                  </AdminLayout>
-                </AdminRoute>
-              } 
-            />
+            {/* Core management routes removed */}
             
             <Route 
               path="/admin/reports" 
@@ -216,6 +184,7 @@ function App() {
           </Routes>
         </Router>
       </AuthProvider>
+      </AntdApp>
     </ConfigProvider>
     </QueryClientProvider>
   )

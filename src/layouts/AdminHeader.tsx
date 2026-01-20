@@ -135,7 +135,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ collapsed, onCollapsedChange 
 
       <Space size="large">
         <Dropdown
-          dropdownRender={() => notificationItems}
+          popupRender={() => notificationItems}
           trigger={['click']}
           placement="bottomRight"
         >

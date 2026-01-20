@@ -1,0 +1,1 @@
+import{a as s}from"./index-HFCtAe_P.js";const n={getAll:async()=>(await s.get("/users")).data,getById:async e=>(await s.get(`/users/${e}`)).data,create:async e=>(await s.post("/users",e)).data,update:async(e,t)=>(await s.put(`/users/${e}`,t)).data,delete:async e=>{await s.delete(`/users/${e}`)}};export{n as default};

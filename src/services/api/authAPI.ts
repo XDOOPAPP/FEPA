@@ -28,6 +28,8 @@ export interface ResetPasswordRequest {
   newPassword: string
 }
 
+// changePassword request type removed
+
 // ========== RESPONSE TYPES ==========
 export interface AuthResponse {
   success: boolean
@@ -83,6 +85,8 @@ const authAPI = {
   resetPassword: async (data: ResetPasswordRequest): Promise<any> => {
     return axiosInstance.post(API_CONFIG.AUTH.RESET_PASSWORD, data)
   },
+
+  // changePassword removed for admin UI - not used
 
   /**
    * Verify token - POST /auth/verify

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { Card, Form, Input, Button, Avatar, Space, Typography, message, Divider, Row, Col } from 'antd'
-import { UserOutlined, MailOutlined, LockOutlined, SaveOutlined, PhoneOutlined } from '@ant-design/icons'
+import { Card, Form, Input, Button, Avatar, Space, Typography, message, Row, Col } from 'antd'
+import { UserOutlined, MailOutlined, SaveOutlined, PhoneOutlined } from '@ant-design/icons'
 import { useAuth } from '../../context/AuthContext'
 
 const { Title, Text } = Typography
@@ -11,18 +11,11 @@ interface ProfileFormValues {
   phone?: string
 }
 
-interface PasswordFormValues {
-  currentPassword: string
-  newPassword: string
-  confirmPassword: string
-}
 
 const ProfilePage: React.FC = () => {
   const { user, updateProfile } = useAuth()
   const [profileForm] = Form.useForm()
-  const [passwordForm] = Form.useForm()
   const [loading, setLoading] = useState(false)
-  const [passwordLoading, setPasswordLoading] = useState(false)
 
   // Fixed default avatar
   const defaultAvatar = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&s=200'
@@ -60,19 +53,7 @@ const ProfilePage: React.FC = () => {
     }
   }
 
-  const handlePasswordChange = async (_values: PasswordFormValues) => {
-    try {
-      setPasswordLoading(true)
-      await new Promise(resolve => setTimeout(resolve, 500)) // Simulate API call
-      
-      message.success('Đổi mật khẩu thành công!')
-      passwordForm.resetFields()
-    } catch (error) {
-      message.error('Đổi mật khẩu thất bại!')
-    } finally {
-      setPasswordLoading(false)
-    }
-  }
+  // change-password removed for admin users
 
   if (!user) return null
 
@@ -178,80 +159,7 @@ const ProfilePage: React.FC = () => {
             </Form>
           </Card>
 
-          <Divider />
-
-          {/* Change Password Card */}
-          <Card title="Đổi Mật Khẩu" extra={<LockOutlined />}>
-            <Form
-              form={passwordForm}
-              layout="vertical"
-              onFinish={handlePasswordChange}
-            >
-              <Form.Item
-                name="currentPassword"
-                label="Mật khẩu hiện tại"
-                rules={[
-                  { required: true, message: 'Vui lòng nhập mật khẩu hiện tại' },
-                ]}
-              >
-                <Input.Password 
-                  prefix={<LockOutlined />} 
-                  placeholder="Nhập mật khẩu hiện tại"
-                  size="large"
-                />
-              </Form.Item>
-
-              <Form.Item
-                name="newPassword"
-                label="Mật khẩu mới"
-                rules={[
-                  { required: true, message: 'Vui lòng nhập mật khẩu mới' },
-                  { min: 6, message: 'Mật khẩu tối thiểu 6 ký tự' },
-                ]}
-              >
-                <Input.Password 
-                  prefix={<LockOutlined />} 
-                  placeholder="Nhập mật khẩu mới"
-                  size="large"
-                />
-              </Form.Item>
-
-              <Form.Item
-                name="confirmPassword"
-                label="Xác nhận mật khẩu mới"
-                dependencies={['newPassword']}
-                rules={[
-                  { required: true, message: 'Vui lòng xác nhận mật khẩu mới' },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      if (!value || getFieldValue('newPassword') === value) {
-                        return Promise.resolve()
-                      }
-                      return Promise.reject(new Error('Mật khẩu xác nhận không khớp!'))
-                    },
-                  }),
-                ]}
-              >
-                <Input.Password 
-                  prefix={<LockOutlined />} 
-                  placeholder="Xác nhận mật khẩu mới"
-                  size="large"
-                />
-              </Form.Item>
-
-              <Form.Item>
-                <Button 
-                  type="primary" 
-                  htmlType="submit" 
-                  icon={<SaveOutlined />}
-                  loading={passwordLoading}
-                  size="large"
-                >
-                  Đổi Mật Khẩu
-                </Button>
-              </Form.Item>
-            </Form>
-          </Card>
+          {/* Change password removed for admin users */}
         </Col>
       </Row>
     </div>

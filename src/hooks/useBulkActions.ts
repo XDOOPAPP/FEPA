@@ -37,8 +37,15 @@ export function useBulkActions<T>({
 }: UseBulkActionsOptions<T>): UseBulkActionsReturn<T> {
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
 
+  // Ensure `items` is always an array to avoid runtime errors when callers
+  // accidentally pass an object or undefined (defensive programming).
+  const safeItems = Array.isArray(items) ? items : (() => {
+    console.warn('useBulkActions: expected `items` to be an array but received', items)
+    return [] as T[]
+  })();
+
   // Get all item IDs
-  const allIds = useMemo(() => items.map(getItemId), [items, getItemId]);
+  const allIds = useMemo(() => safeItems.map(getItemId), [safeItems, getItemId]);
 
   // Check if all items are selected
   const isAllSelected = useMemo(
@@ -54,8 +61,8 @@ export function useBulkActions<T>({
 
   // Get selected items
   const selectedItems = useMemo(
-    () => items.filter((item) => selectedIds.has(getItemId(item))),
-    [items, selectedIds, getItemId]
+    () => safeItems.filter((item) => selectedIds.has(getItemId(item))),
+    [safeItems, selectedIds, getItemId]
   );
 
   // Select a single item

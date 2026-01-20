@@ -1,5 +1,7 @@
 import axios, { type AxiosInstance, type AxiosError } from 'axios';
-import { message } from 'antd';
+// Avoid using Ant Design's static `message.*` here because it may be
+// invoked before React's `<App>`/theme context is mounted. Log errors
+// instead and let UI components show notifications via `message.useMessage()`.
 import { API_CONFIG } from '../config/api.config';
 
 // Base API URL từ config tập trung
@@ -40,28 +42,28 @@ apiClient.interceptors.response.use(
 
       switch (status) {
         case 401:
-          message.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
+          console.error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
           sessionStorage.removeItem('user');
           window.location.href = '/login';
           break;
         case 403:
-          message.error('Bạn không có quyền thực hiện thao tác này.');
+          console.error('Bạn không có quyền thực hiện thao tác này.');
           break;
         case 404:
-          message.error('Không tìm thấy dữ liệu.');
+          console.error('Không tìm thấy dữ liệu.');
           break;
         case 500:
-          message.error('Lỗi máy chủ. Vui lòng thử lại sau.');
+          console.error('Lỗi máy chủ. Vui lòng thử lại sau.');
           break;
         default:
-          message.error(data?.message || 'Đã có lỗi xảy ra.');
+          console.error(data?.message || 'Đã có lỗi xảy ra.');
       }
     } else if (error.request) {
-      message.error('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
+      console.error('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.');
     } else {
-      message.error('Đã có lỗi xảy ra.');
+      console.error('Đã có lỗi xảy ra.');
     }
     return Promise.reject(error);
   }

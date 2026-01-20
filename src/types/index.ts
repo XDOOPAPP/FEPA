@@ -15,4 +15,5 @@ export interface AuthContextType {
   logout: () => void;
   loading: boolean;
   updateProfile?: (data: Partial<User>) => void;
+  // changePassword removed for admin UI
 }

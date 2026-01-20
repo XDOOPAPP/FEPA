@@ -38,28 +38,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
       label: 'User Management',
       onClick: () => navigate('/admin/users')
     },
-    {
-      key: 'core',
-      icon: <ShoppingOutlined />,
-      label: 'Core Management',
-      children: [
-        {
-          key: '/admin/expenses',
-          label: 'Expenses',
-          onClick: () => navigate('/admin/expenses')
-        },
-        {
-          key: '/admin/budgets',
-          label: 'Budgets',
-          onClick: () => navigate('/admin/budgets')
-        },
-        {
-          key: '/admin/categories',
-          label: 'Categories',
-          onClick: () => navigate('/admin/categories')
-        }
-      ]
-    },
+    // Core Management removed per admin UI decisions
     {
       key: '/admin/reports',
       icon: <FileTextOutlined />,

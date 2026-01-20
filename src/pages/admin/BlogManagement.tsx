@@ -18,6 +18,21 @@ const BlogManagement: React.FC = () => {
   const [form] = Form.useForm()
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
+  const [messageApi, contextHolder] = message.useMessage()
+
+  // Ensure API responses are normalized to an array of posts
+  const normalizePosts = (data: any): Blog[] => {
+    if (!data) return []
+    if (Array.isArray(data)) return data
+    if (data && Array.isArray(data.data)) return data.data
+    // common alternative shapes
+    const candidates = ['items', 'blogs', 'results', 'rows']
+    for (const key of candidates) {
+      if (data[key] && Array.isArray(data[key])) return data[key]
+    }
+    console.warn('BlogManagement: unexpected getAll() response shape, expected array', data)
+    return []
+  }
 
   // Bulk actions
   const {
@@ -43,13 +58,19 @@ const BlogManagement: React.FC = () => {
     try {
       setLoading(true)
       const data = await blogService.getAll()
-      setPosts(data)
+      setPosts(normalizePosts(data))
     } catch (error) {
       console.error('Failed to load blogs:', error)
       // Fallback to localStorage if API fails
       const storedPosts = localStorage.getItem('blog_posts')
       if (storedPosts) {
-        setPosts(JSON.parse(storedPosts))
+        try {
+          const parsed = JSON.parse(storedPosts)
+          setPosts(normalizePosts(parsed))
+        } catch (e) {
+          console.warn('Failed to parse stored blog_posts', e)
+          setPosts([])
+        }
       }
     } finally {
       setLoading(false)
@@ -84,7 +105,7 @@ const BlogManagement: React.FC = () => {
         try {
           // API: DELETE /api/blogs/:id
           await blogService.delete(id)
-          message.success('Đã xóa bài viết')
+          messageApi.success('Đã xóa bài viết')
           loadBlogs() // Reload list
         } catch (error) {
           console.error('Failed to delete blog:', error)
@@ -106,7 +127,7 @@ const BlogManagement: React.FC = () => {
           content,
           tags,
         })
-        message.success('Cập nhật bài viết thành công')
+        messageApi.success('Cập nhật bài viết thành công')
       } else {
         // API: POST /api/blogs
         await blogService.create({
@@ -114,7 +135,7 @@ const BlogManagement: React.FC = () => {
           content,
           tags,
         })
-        message.success('Thêm bài viết thành công')
+        messageApi.success('Thêm bài viết thành công')
       }
       
       setIsModalVisible(false)
@@ -134,7 +155,7 @@ const BlogManagement: React.FC = () => {
       setLoading(true)
       await blogService.bulkDelete(Array.from(selectedIds).map(String))
       deselectAll()
-      message.success(`Đã xóa ${selectedIds.size} bài viết`)
+      messageApi.success(`Đã xóa ${selectedIds.size} bài viết`)
       loadBlogs() // Reload list
     } catch (error) {
       console.error('Failed to bulk delete:', error)
@@ -153,7 +174,7 @@ const BlogManagement: React.FC = () => {
       'Ngày tạo': dayjs(post.createdAt).format('DD/MM/YYYY HH:mm'),
     }))
     exportToCSV(dataToExport, { filename: 'blog-posts-export' })
-    message.success(`Đã export ${selectedIds.size} bài viết`)
+    messageApi.success(`Đã export ${selectedIds.size} bài viết`)
   }
 
   const columns: ColumnsType<Blog> = [
