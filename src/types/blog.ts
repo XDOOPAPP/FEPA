@@ -1,45 +1,54 @@
+export type BlogStatus = 'draft' | 'pending' | 'published' | 'rejected';
+
 export interface Blog {
+  id: string;
+  userId: string;
+  title: string;
+  slug: string;
+  content: string;
+  thumbnailUrl?: string;
+  images: string[];
+  status: BlogStatus;
+  rejectionReason?: string | null;
+  publishedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  author?: {
     id: string;
-    title: string;
-    slug: string;
-    content: string;
-    excerpt?: string;
-    author: string;
-    status: 'draft' | 'published' | 'archived';
-    category: string;
-    featuredImage?: string;
-    tags?: string[];
-    viewCount?: number;
-    createdAt: string;
-    updatedAt: string;
+    name: string;
+    email?: string;
+  };
 }
 
-export interface CreateBlogDto {
-    title: string;
-    content: string;
-    excerpt?: string;
-    author?: string;
-    status: 'draft' | 'published' | 'archived';
-    category: string;
-    featuredImage?: string;
-    tags?: string[];
+export interface BlogFilters {
+  author?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  search?: string;
 }
 
-export interface UpdateBlogDto {
-    title?: string;
-    content?: string;
-    excerpt?: string;
-    author?: string;
-    status?: 'draft' | 'published' | 'archived';
-    category?: string;
-    featuredImage?: string;
-    tags?: string[];
+export interface BlogListResponse {
+  data: Blog[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
-export interface BlogQueryParams {
-    status?: string;
-    category?: string;
-    page?: number;
-    limit?: number;
-    search?: string;
+export interface BlogActionResponse {
+  success: boolean;
+  message: string;
+  data?: Blog;
+}
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+}
+
+export interface ApproveParams {
+  note?: string;
+}
+
+export interface RejectParams {
+  reason: string;
 }

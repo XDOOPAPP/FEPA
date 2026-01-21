@@ -69,19 +69,20 @@ export const API_CONFIG = {
     BY_CATEGORY: (category: string) => `/expenses/by-category/${category}`,
   },
 
-  // ===== BLOG ENDPOINTS =====
-  BLOGS: {
-    LIST: '/blogs',
-    DETAIL: (id: string) => `/blogs/${id}`,
-    BY_SLUG: (slug: string) => `/blogs/${slug}`,
-  },
-
   // ===== NOTIFICATION ENDPOINTS =====
   NOTIFICATIONS: {
     LIST: '/notifications',
     MARK_READ: (id: string) => `/notifications/${id}/read`,
     MARK_ALL_READ: '/notifications/read-all',
     DELETE: (id: string) => `/notifications/${id}`,
+  },
+
+  // ===== BLOG ENDPOINTS =====
+  BLOGS: {
+    LIST: '/blogs',                                                   // GET - with query params
+    DETAIL: (id: string) => `/blogs/${id}`,                           // GET
+    APPROVE: (id: string) => `/blogs/${id}/approve`,                  // POST
+    REJECT: (id: string) => `/blogs/${id}/reject`,                    // POST
   },
 
   // ===== SYSTEM ENDPOINTS =====

@@ -19,11 +19,12 @@ import UserManagement from './pages/admin/UserManagement'
 import AdminReports from './pages/admin/AdminReports'
 import AdminNotifications from './pages/admin/AdminNotifications'
 import AdminSubscription from './pages/admin/AdminSubscription'
-import BlogManagement from './pages/admin/BlogManagement'
 import AdsManagement from './pages/admin/AdsManagement'
 import PartnerPortal from './pages/admin/PartnerPortal'
 import SystemSettings from './pages/admin/SystemSettings'
 import SystemHealth from './pages/admin/SystemHealth'
+// Blog management pages
+import { PendingBlogs, PublishedBlogs, RejectedBlogs, BlogDetail } from './pages/admin/blogs'
 
 const themeConfig = {
   token: {
@@ -92,6 +93,51 @@ function App() {
               } 
             />
             
+            {/* Blog Management Routes */}
+            <Route 
+              path="/admin/blogs/pending" 
+              element={
+                <AdminRoute>
+                  <AdminLayout>
+                    <PendingBlogs />
+                  </AdminLayout>
+                </AdminRoute>
+              } 
+            />
+            
+            <Route 
+              path="/admin/blogs/published" 
+              element={
+                <AdminRoute>
+                  <AdminLayout>
+                    <PublishedBlogs />
+                  </AdminLayout>
+                </AdminRoute>
+              } 
+            />
+            
+            <Route 
+              path="/admin/blogs/rejected" 
+              element={
+                <AdminRoute>
+                  <AdminLayout>
+                    <RejectedBlogs />
+                  </AdminLayout>
+                </AdminRoute>
+              } 
+            />
+            
+            <Route 
+              path="/admin/blogs/:id" 
+              element={
+                <AdminRoute>
+                  <AdminLayout>
+                    <BlogDetail />
+                  </AdminLayout>
+                </AdminRoute>
+              } 
+            />
+            
             <Route 
               path="/admin/notifications" 
               element={
@@ -120,17 +166,6 @@ function App() {
                 <AdminRoute>
                   <AdminLayout>
                     <SettingsPage />
-                  </AdminLayout>
-                </AdminRoute>
-              } 
-            />
-            
-            <Route 
-              path="/admin/blogs" 
-              element={
-                <AdminRoute>
-                  <AdminLayout>
-                    <BlogManagement />
                   </AdminLayout>
                 </AdminRoute>
               } 

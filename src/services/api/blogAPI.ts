@@ -1,60 +1,103 @@
 import axiosInstance from './axiosInstance';
 import { API_CONFIG } from '../../config/api.config';
-import type { Blog, CreateBlogDto, UpdateBlogDto, BlogQueryParams } from '../../types/blog';
+import type {
+	Blog,
+	BlogListResponse,
+	BlogActionResponse,
+	PaginationParams,
+	ApproveParams,
+	RejectParams,
+	BlogStatus,
+} from '../../types/blog';
 
-const BLOG_ENDPOINTS = API_CONFIG.BLOGS;
+interface GetBlogsParams extends PaginationParams {
+	status?: BlogStatus;
+	author?: string;
+	search?: string;
+	dateFrom?: string;
+	dateTo?: string;
+}
 
 export const blogAPI = {
-    /**
-     * Get all blogs with optional filters
-     */
-    getAll: (params?: BlogQueryParams): Promise<Blog[]> => {
-        return axiosInstance.get(BLOG_ENDPOINTS.LIST, { params });
-    },
+	/**
+	 * Get blogs with filters. Backend now ignores pagination; only status (and optional filters) are needed.
+	 */
+	getBlogs: async (params: GetBlogsParams): Promise<BlogListResponse> => {
+		const { page, limit, ...rest } = params;
 
-    /**
-     * Get blog by slug
-     */
-    getBySlug: (slug: string): Promise<Blog> => {
-        return axiosInstance.get(BLOG_ENDPOINTS.BY_SLUG(slug));
-    },
+		const queryParams: Record<string, unknown> = {
+			...rest,
+			// Explicitly drop page/limit per new endpoint contract.
+		};
 
-    /**
-     * Get blog by ID
-     */
-    getById: (id: string): Promise<Blog> => {
-        return axiosInstance.get(BLOG_ENDPOINTS.DETAIL(id));
-    },
+		const response = await axiosInstance.get(API_CONFIG.BLOGS.LIST, { params: queryParams });
+		
+		// Backend returns array directly, need to wrap in BlogListResponse format
+		if (Array.isArray(response)) {
+			return {
+				data: response,
+				total: response.length,
+				page: 1,
+				limit: response.length,
+			};
+		}
+		
+		// If already in correct format, return as is
+		return response as BlogListResponse;
+	},
 
-    /**
-     * Create new blog (Admin only)
-     */
-    create: (data: CreateBlogDto): Promise<Blog> => {
-        return axiosInstance.post(BLOG_ENDPOINTS.LIST, data);
-    },
+	/**
+	 * Get pending blogs
+	 */
+	getPendingBlogs: async (params?: PaginationParams): Promise<BlogListResponse> => {
+		return blogAPI.getBlogs({ ...params, status: 'pending' });
+	},
 
-    /**
-     * Update blog (Admin only)
-     */
-    update: (id: string, data: UpdateBlogDto): Promise<Blog> => {
-        return axiosInstance.patch(BLOG_ENDPOINTS.DETAIL(id), data);
-    },
+	/**
+	 * Get published blogs
+	 */
+	getPublishedBlogs: async (params?: PaginationParams): Promise<BlogListResponse> => {
+		return blogAPI.getBlogs({ ...params, status: 'published' });
+	},
 
-    /**
-     * Delete blog (Admin only)
-     */
-    delete: (id: string): Promise<void> => {
-        return axiosInstance.delete(BLOG_ENDPOINTS.DETAIL(id));
-    },
+	/**
+	 * Get rejected blogs
+	 */
+	getRejectedBlogs: async (params?: PaginationParams): Promise<BlogListResponse> => {
+		return blogAPI.getBlogs({ ...params, status: 'rejected' });
+	},
 
-    /**
-     * Bulk delete blogs (Admin only) - If backend supports it, otherwise manual loop
-     */
-    bulkDelete: async (ids: string[]): Promise<void> => {
-        // Assuming backend might not have a dedicated bulk delete endpoint for blogs specifically in the current config
-        // We follow the pattern of calling delete multiple times or implementing if exists
-        await Promise.all(ids.map(id => axiosInstance.delete(BLOG_ENDPOINTS.DETAIL(id))));
-    }
+	/**
+	 * Get blog detail by ID
+	 */
+	getBlogDetail: async (id: string): Promise<Blog> => {
+		const response = await axiosInstance.get(API_CONFIG.BLOGS.DETAIL(id));
+		return response as Blog;
+	},
+
+	/**
+	 * Approve a blog
+	 */
+	approveBlog: async (id: string, params?: ApproveParams): Promise<BlogActionResponse> => {
+		const response = await axiosInstance.post(API_CONFIG.BLOGS.APPROVE(id), params);
+		return response as BlogActionResponse;
+	},
+
+	/**
+	 * Reject a blog
+	 */
+	rejectBlog: async (id: string, params: RejectParams): Promise<BlogActionResponse> => {
+		const response = await axiosInstance.post(API_CONFIG.BLOGS.REJECT(id), params);
+		return response as BlogActionResponse;
+	},
+
+	/**
+	 * Get pending blogs count (for badge)
+	 */
+	getPendingCount: async (): Promise<number> => {
+		const response = await blogAPI.getPendingBlogs({ page: 1, limit: 1 });
+		return response.total;
+	},
 };
 
 export default blogAPI;

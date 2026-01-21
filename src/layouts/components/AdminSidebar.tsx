@@ -57,11 +57,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
       label: 'Content Management',
       children: [
         {
-          key: '/admin/blogs',
-          label: 'Blogs',
-          onClick: () => navigate('/admin/blogs')
-        },
-        {
           key: '/admin/ads',
           label: 'Advertisements',
           onClick: () => navigate('/admin/ads')

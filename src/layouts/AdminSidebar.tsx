@@ -10,7 +10,8 @@ import {
   TeamOutlined,
   CrownOutlined,
   ReadOutlined,
-  ControlOutlined
+  ControlOutlined,
+  BookOutlined
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 import './Sidebar.css'
@@ -52,15 +53,32 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
       onClick: () => navigate('/admin/subscription')
     },
     {
+      key: 'blogs',
+      icon: <BookOutlined />,
+      label: 'Blog Management',
+      children: [
+        {
+          key: '/admin/blogs/pending',
+          label: 'Pending Reviews',
+          onClick: () => navigate('/admin/blogs/pending')
+        },
+        {
+          key: '/admin/blogs/published',
+          label: 'Published Blogs',
+          onClick: () => navigate('/admin/blogs/published')
+        },
+        {
+          key: '/admin/blogs/rejected',
+          label: 'Rejected Blogs',
+          onClick: () => navigate('/admin/blogs/rejected')
+        }
+      ]
+    },
+    {
       key: 'content',
       icon: <ReadOutlined />,
       label: 'Content Management',
       children: [
-        {
-          key: '/admin/blogs',
-          label: 'Blogs',
-          onClick: () => navigate('/admin/blogs')
-        },
         {
           key: '/admin/ads',
           label: 'Advertisements',
