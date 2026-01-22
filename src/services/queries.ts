@@ -5,6 +5,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import subscriptionAPI from './api/subscriptionAPI'
+import type { SubscriptionStatsMap } from './api/subscriptionAPI'
 // import axiosInstance from './api/axiosInstance' // Uncomment khi cần dùng
 import { message } from 'antd'
 
@@ -274,7 +275,8 @@ export const useGetStats = () => {
     queryKey: ['subscriptions', 'stats'],
     queryFn: async () => {
       const response = await subscriptionAPI.getStats()
-      return response.data || response
+      // subscriptionAPI đã normalize trả về map hoặc payload.data
+      return response as SubscriptionStatsMap
     },
     staleTime: 1 * 60 * 1000, // 1 minute
     retry: 3,

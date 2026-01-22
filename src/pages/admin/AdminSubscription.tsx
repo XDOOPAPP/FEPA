@@ -4,6 +4,7 @@ import { CrownOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleO
 import type { ColumnsType } from 'antd/es/table'
 import { useGetPlans, useCreatePlan, useUpdatePlan, useDeletePlan, useHealthCheck } from '../../services/queries'
 import type { SubscriptionPlan as APIPlan } from '../../services/api/subscriptionAPI'
+import SubscriptionStats from '../../components/SubscriptionStats'
 
 interface SubscriptionPlan extends APIPlan {
   id: string // Alias cho _id
@@ -281,6 +282,8 @@ const AdminSubscription: React.FC = () => {
             Subscription Service: {isServiceHealthy ? 'Online' : isServiceHealthy === null ? 'Checking...' : 'Offline'}
           </Tag>
         </div>
+
+        <SubscriptionStats />
 
         <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
           <Col xs={24} sm={8} md={6}>

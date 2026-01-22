@@ -62,15 +62,12 @@ export interface UserSubscriptionsResponse {
   data: UserSubscription[]
 }
 
+export type SubscriptionStatsMap = Record<string, { name: string; count: number }>
+
 export interface StatsResponse {
-  success: boolean
-  message: string
-  data: {
-    totalPlans: number
-    activeSubscriptions: number
-    totalRevenue: number
-    subscriptionsByPlan: Record<string, number>
-  }
+  success?: boolean
+  message?: string
+  data?: SubscriptionStatsMap
 }
 
 export interface HealthCheckResponse {
@@ -150,7 +147,10 @@ const subscriptionAPI = {
     const response = await axiosInstance.get<StatsResponse>(
       API_CONFIG.SUBSCRIPTIONS.ADMIN_STATS
     )
-    return response.data || response
+
+    // Ưu tiên field data (nếu backend bọc), fallback trả map thô
+    const payload = response.data || (response as any)
+    return payload?.data ?? payload
   },
 
   /**
