@@ -69,20 +69,24 @@ export const API_CONFIG = {
     BY_CATEGORY: (category: string) => `/expenses/by-category/${category}`,
   },
 
-  // ===== NOTIFICATION ENDPOINTS =====
-  NOTIFICATIONS: {
-    LIST: '/notifications',
-    MARK_READ: (id: string) => `/notifications/${id}/read`,
-    MARK_ALL_READ: '/notifications/read-all',
-    DELETE: (id: string) => `/notifications/${id}`,
-  },
-
   // ===== BLOG ENDPOINTS =====
   BLOGS: {
     LIST: '/blogs',                                                   // GET - with query params
     DETAIL: (id: string) => `/blogs/${id}`,                           // GET
     APPROVE: (id: string) => `/blogs/${id}/approve`,                  // POST
     REJECT: (id: string) => `/blogs/${id}/reject`,                    // POST
+  },
+
+  // ===== NOTIFICATION ENDPOINTS =====
+  NOTIFICATIONS: {
+    LIST: '/notifications',
+    CREATE: '/notifications',
+    UNREAD_COUNT: '/notifications/unread-count',
+    READ: (id: string) => `/notifications/${id}/read`,
+    READ_ALL: '/notifications/read-all',
+    DELETE: (id: string) => `/notifications/${id}`,
+    DELETE_ALL: '/notifications',
+    STREAM: '/notifications/stream', // Optional SSE endpoint
   },
 
   // ===== SYSTEM ENDPOINTS =====

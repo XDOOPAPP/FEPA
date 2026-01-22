@@ -1,6 +1,6 @@
 import React from 'react'
 import { Layout, Menu } from 'antd'
-import { DashboardOutlined, ShoppingOutlined, DollarOutlined, FileOutlined, CameraOutlined, BellOutlined, HomeOutlined, CrownOutlined, SettingOutlined } from '@ant-design/icons'
+import { DashboardOutlined, ShoppingOutlined, DollarOutlined, FileOutlined, CameraOutlined, HomeOutlined, CrownOutlined, SettingOutlined } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 import './Sidebar.css'
 
@@ -62,12 +62,6 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
       icon: <SettingOutlined />,
       label: 'Settings',
       onClick: () => navigate('/settings')
-    },
-    {
-      key: '/notifications',
-      icon: <BellOutlined />,
-      label: 'Notifications',
-      onClick: () => navigate('/notifications')
     }
   ]
 

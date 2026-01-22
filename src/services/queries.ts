@@ -5,7 +5,6 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import subscriptionAPI from './api/subscriptionAPI'
-import notificationAPI from './api/notificationAPI'
 // import axiosInstance from './api/axiosInstance' // Uncomment khi cần dùng
 import { message } from 'antd'
 
@@ -414,76 +413,3 @@ export const useCancelSubscription = () => {
  *   return <div>{plans?.map(...)}</div>
  * }
  */
-
-// ==================== NOTIFICATION SERVICE ====================
-
-/**
- * Lấy danh sách thông báo
- * GET /api/v1/notifications
- */
-export const useNotifications = () => {
-  return useQuery({
-    queryKey: ['notifications'],
-    queryFn: async () => {
-      const response = await notificationAPI.getAll();
-      return response.data;
-    },
-    refetchInterval: 30000, // Refresh every 30 seconds
-  });
-};
-
-/**
- * Đánh dấu thông báo đã đọc
- * PATCH /api/v1/notifications/:id/read
- */
-export const useMarkNotificationRead = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => await notificationAPI.markAsRead(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Lỗi khi đánh dấu đã đọc');
-    },
-  });
-};
-
-/**
- * Đánh dấu tất cả thông báo đã đọc
- * PATCH /api/v1/notifications/read-all
- */
-export const useMarkAllNotificationsRead = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async () => await notificationAPI.markAllAsRead(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      message.success('Đã đánh dấu tất cả là đã đọc');
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Có lỗi xảy ra');
-    },
-  });
-};
-
-/**
- * Xóa thông báo
- * DELETE /api/v1/notifications/:id
- */
-export const useDeleteNotification = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => await notificationAPI.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      message.success('Đã xóa thông báo');
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Lỗi khi xóa thông báo');
-    },
-  });
-};

@@ -202,7 +202,7 @@ const AdminDashboard: React.FC = () => {
         </Col>
       </Row>
 
-      {/* Charts and Quick Notifications */}
+      {/* Charts */}
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
         <Col xs={24} lg={16}>
           <Card title="Thống kê theo tháng">

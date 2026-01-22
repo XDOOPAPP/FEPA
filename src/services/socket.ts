@@ -3,7 +3,7 @@ import { API_CONFIG } from '../config/api.config'
 
 /**
  * Socket.IO Client Configuration
- * Kết nối WebSocket cho real-time notifications và updates
+ * Kết nối WebSocket cho real-time updates
  */
 
 let socket: Socket | null = null
@@ -59,23 +59,6 @@ export const disconnectSocket = () => {
   if (socket) {
     socket.disconnect()
     socket = null
-  }
-}
-
-/**
- * Subscribe to admin notifications
- */
-export const subscribeToNotifications = (callback: (notification: any) => void) => {
-  if (!socket) {
-    console.warn('Socket not initialized')
-    return
-  }
-
-  socket.on('admin:notification', callback)
-  
-  // Cleanup function
-  return () => {
-    socket?.off('admin:notification', callback)
   }
 }
 

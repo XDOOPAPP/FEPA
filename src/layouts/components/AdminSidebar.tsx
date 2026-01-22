@@ -5,7 +5,6 @@ import {
   UserOutlined, 
   ShoppingOutlined, 
   FileTextOutlined, 
-  BellOutlined, 
   SettingOutlined,
   TeamOutlined,
   CrownOutlined,
@@ -84,12 +83,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
           onClick: () => navigate('/admin/system-health')
         }
       ]
-    },
-    {
-      key: '/admin/notifications',
-      icon: <BellOutlined />,
-      label: 'Notifications',
-      onClick: () => navigate('/admin/notifications')
     },
     {
       key: '/admin/profile',

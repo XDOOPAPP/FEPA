@@ -6,3 +6,4 @@
 export { default as axiosInstance } from './axiosInstance';
 export { default as authAPI } from './authAPI';
 export { default as subscriptionAPI } from './subscriptionAPI';
+export { default as notificationAPI } from './notificationAPI';

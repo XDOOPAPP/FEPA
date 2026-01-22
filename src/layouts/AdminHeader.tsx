@@ -1,15 +1,9 @@
 import React from 'react'
-import { Layout, Space, Avatar, Dropdown, Button, Badge, List, Typography, Empty } from 'antd'
-import { MenuFoldOutlined, MenuUnfoldOutlined, BellOutlined, LogoutOutlined, UserOutlined, SettingOutlined, CheckCircleOutlined, InfoCircleOutlined, WarningOutlined, CloseCircleOutlined } from '@ant-design/icons'
+import { Layout, Space, Avatar, Dropdown, Button, Typography } from 'antd'
+import { MenuFoldOutlined, MenuUnfoldOutlined, LogoutOutlined, UserOutlined, SettingOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useNotifications, useMarkNotificationRead } from '../services/queries'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import 'dayjs/locale/vi'
-
-dayjs.extend(relativeTime)
-dayjs.locale('vi')
+import NotificationBell from '../components/notifications/NotificationBell'
 
 const { Text } = Typography
 
@@ -20,84 +14,14 @@ interface AdminHeaderProps {
   onCollapsedChange: (collapsed: boolean) => void
 }
 
-interface Notification {
-  id: string
-  title: string
-  message: string
-  type: 'info' | 'success' | 'warning' | 'error'
-  read: boolean
-  createdAt: string
-}
-
 const AdminHeader: React.FC<AdminHeaderProps> = ({ collapsed, onCollapsedChange }) => {
   const navigate = useNavigate()
   const { logout, user } = useAuth()
-
-  // Use React Query hooks
-  const { data: notifications = [] } = useNotifications()
-  const markAsReadMutation = useMarkNotificationRead()
-
-  const unreadCount = notifications.filter((n: Notification) => !n.read).length
 
   const handleLogout = () => {
     logout()
     navigate('/login')
   }
-
-  const handleMarkAsRead = (id: string) => {
-    markAsReadMutation.mutate(id)
-  }
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'success':
-        return <CheckCircleOutlined style={{ color: '#52c41a' }} />
-      case 'warning':
-        return <WarningOutlined style={{ color: '#faad14' }} />
-      case 'error':
-        return <CloseCircleOutlined style={{ color: '#ff4d4f' }} />
-      default:
-        return <InfoCircleOutlined style={{ color: '#1890ff' }} />
-    }
-  }
-
-  const notificationItems = notifications.length > 0 ? (
-    <div style={{ width: '360px', maxHeight: '400px', overflowY: 'auto' }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', fontWeight: 600 }}>
-        Thông báo quản trị
-      </div>
-      <List
-        dataSource={notifications}
-        renderItem={(item: Notification) => (
-          <List.Item
-            style={{
-              padding: '12px 16px',
-              cursor: 'pointer',
-              background: item.read ? '#fff' : '#e6f7ff'
-            }}
-            onClick={() => !item.read && handleMarkAsRead(item.id)}
-          >
-            <Space direction="vertical" style={{ width: '100%' }} size="small">
-              <Space>
-                {getNotificationIcon(item.type)}
-                <Text strong>{item.title}</Text>
-              </Space>
-              <Text type="secondary" style={{ fontSize: '13px' }}>
-                {item.message}
-              </Text>
-              <Text type="secondary" style={{ fontSize: '12px' }}>
-                {dayjs(item.createdAt).fromNow()}
-              </Text>
-            </Space>
-          </List.Item>
-        )}
-      />
-    </div>
-  ) : (
-    <div style={{ width: '300px', padding: '20px' }}>
-      <Empty description="Không có thông báo mới" />
-    </div>
-  )
 
   const userMenuItems = [
     {
@@ -134,20 +58,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ collapsed, onCollapsedChange 
       />
 
       <Space size="large">
-        <Dropdown
-          popupRender={() => notificationItems}
-          trigger={['click']}
-          placement="bottomRight"
-        >
-          <Badge count={unreadCount} offset={[-5, 5]}>
-            <Button
-              type="text"
-              icon={<BellOutlined style={{ fontSize: '18px' }} />}
-              style={{ width: 48, height: 48 }}
-            />
-          </Badge>
-        </Dropdown>
-
+        <NotificationBell />
         <Dropdown menu={{ items: userMenuItems }} trigger={['click']} placement="bottomRight">
           <Space style={{ cursor: 'pointer' }}>
             <Avatar

@@ -1,19 +1,20 @@
 import React from 'react'
-import { Layout, Menu } from 'antd'
+import { Layout, Menu, Badge } from 'antd'
 import { 
   DashboardOutlined, 
   UserOutlined, 
   ShoppingOutlined, 
   FileTextOutlined, 
-  BellOutlined, 
   SettingOutlined,
   TeamOutlined,
   CrownOutlined,
   ReadOutlined,
   ControlOutlined,
-  BookOutlined
+  BookOutlined,
+  BellOutlined
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useNotificationUnreadCount } from '../hooks/useNotifications'
 import './Sidebar.css'
 
 const { Sider } = Layout
@@ -25,6 +26,7 @@ interface AdminSidebarProps {
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
   const navigate = useNavigate()
   const location = useLocation()
+  const { data: unreadCount } = useNotificationUnreadCount()
 
   const menuItems = [
     {
@@ -38,6 +40,16 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
       icon: <TeamOutlined />,
       label: 'User Management',
       onClick: () => navigate('/admin/users')
+    },
+    {
+      key: '/admin/notifications',
+      icon: (
+        <Badge count={unreadCount || 0} offset={[12, 0]} size="small">
+          <BellOutlined />
+        </Badge>
+      ),
+      label: 'Notifications',
+      onClick: () => navigate('/admin/notifications')
     },
     // Core Management removed per admin UI decisions
     {
@@ -107,12 +119,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
           onClick: () => navigate('/admin/system-health')
         }
       ]
-    },
-    {
-      key: '/admin/notifications',
-      icon: <BellOutlined />,
-      label: 'Notifications',
-      onClick: () => navigate('/admin/notifications')
     },
     {
       key: '/admin/profile',

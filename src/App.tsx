@@ -17,12 +17,12 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import UserManagement from './pages/admin/UserManagement'
 // Core management pages removed from routes
 import AdminReports from './pages/admin/AdminReports'
-import AdminNotifications from './pages/admin/AdminNotifications'
 import AdminSubscription from './pages/admin/AdminSubscription'
 import AdsManagement from './pages/admin/AdsManagement'
 import PartnerPortal from './pages/admin/PartnerPortal'
 import SystemSettings from './pages/admin/SystemSettings'
 import SystemHealth from './pages/admin/SystemHealth'
+import NotificationsPage from './pages/admin/notifications/NotificationsPage'
 // Blog management pages
 import { PendingBlogs, PublishedBlogs, RejectedBlogs, BlogDetail } from './pages/admin/blogs'
 
@@ -64,6 +64,17 @@ function App() {
                 <AdminRoute>
                   <AdminLayout>
                     <UserManagement />
+                  </AdminLayout>
+                </AdminRoute>
+              } 
+            />
+            
+            <Route 
+              path="/admin/notifications" 
+              element={
+                <AdminRoute>
+                  <AdminLayout>
+                    <NotificationsPage />
                   </AdminLayout>
                 </AdminRoute>
               } 
@@ -133,17 +144,6 @@ function App() {
                 <AdminRoute>
                   <AdminLayout>
                     <BlogDetail />
-                  </AdminLayout>
-                </AdminRoute>
-              } 
-            />
-            
-            <Route 
-              path="/admin/notifications" 
-              element={
-                <AdminRoute>
-                  <AdminLayout>
-                    <AdminNotifications />
                   </AdminLayout>
                 </AdminRoute>
               } 

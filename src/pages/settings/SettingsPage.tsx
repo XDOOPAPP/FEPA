@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Card, Form, Select, Switch, Button, message, Space, Typography, Divider, Row, Col, Popconfirm } from 'antd'
-import { DeleteOutlined, ReloadOutlined, SaveOutlined, BellOutlined, GlobalOutlined, DatabaseOutlined } from '@ant-design/icons'
+import { DeleteOutlined, ReloadOutlined, SaveOutlined, GlobalOutlined, DatabaseOutlined } from '@ant-design/icons'
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -9,7 +9,6 @@ interface Settings {
   currency: string
   dateFormat: string
   timezone: string
-  notificationsEnabled: boolean
   budgetAlertEnabled: boolean
   expenseReminderEnabled: boolean
 }
@@ -18,7 +17,6 @@ const defaultSettings: Settings = {
   currency: 'VND',
   dateFormat: 'DD/MM/YYYY',
   timezone: 'Asia/Ho_Chi_Minh',
-  notificationsEnabled: true,
   budgetAlertEnabled: true,
   expenseReminderEnabled: false,
 }
@@ -163,32 +161,17 @@ const SettingsPage: React.FC = () => {
           </Row>
         </Card>
 
-        {/* 3. Notifications Settings */}
+        {/* 3. Alert Settings */}
         <Card 
           title={
             <Space>
-              <BellOutlined />
-              <span>Thông Báo</span>
+              <DatabaseOutlined />
+              <span>Cài Đặt Cảnh Báo</span>
             </Space>
           }
           style={{ marginBottom: '16px' }}
         >
           <Space direction="vertical" style={{ width: '100%' }} size="large">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <Text strong>Bật thông báo</Text>
-                <br />
-                <Text type="secondary" style={{ fontSize: '12px' }}>
-                  Nhận tất cả thông báo từ ứng dụng
-                </Text>
-              </div>
-              <Form.Item name="notificationsEnabled" valuePropName="checked" style={{ margin: 0 }}>
-                <Switch />
-              </Form.Item>
-            </div>
-
-            <Divider style={{ margin: '12px 0' }} />
-
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <Text strong>Cảnh báo vượt ngân sách</Text>
