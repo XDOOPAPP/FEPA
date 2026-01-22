@@ -5,7 +5,7 @@
 
 // ========== BASE URLs ==========
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://76.13.21.84:3000/api/v1'
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://76.13.21.84:3000'
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://76.13.21.84:3102'
 
 // ========== API ENDPOINTS ==========
 export const API_CONFIG = {

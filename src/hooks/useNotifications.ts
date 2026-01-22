@@ -25,20 +25,31 @@ export const useNotificationUnreadCount = () => {
     if (!socket) return
 
     const handleNew = (notification: NotificationItem) => {
+      console.log('📬 useNotificationUnreadCount - Received notification:', notification)
+      
+      // Update unread count
       if (!notification.isRead) {
         queryClient.setQueryData<number | undefined>(notificationKeys.unreadCount(), (prev) => {
-          if (typeof prev === 'number') return prev + 1
-          return 1
+          const newCount = typeof prev === 'number' ? prev + 1 : 1
+          console.log('🔔 Unread count updated:', prev, '->', newCount)
+          return newCount
         })
       }
+      
+      // Invalidate all notification queries để refresh danh sách
       queryClient.invalidateQueries({ queryKey: notificationKeys.base })
+      
+      // Show console notification
+      console.log(`🔔 NEW NOTIFICATION: ${notification.title}`)
     }
 
     const handleUnreadCount = (count: number) => {
+      console.log('🔢 Received unread count update:', count)
       queryClient.setQueryData(notificationKeys.unreadCount(), count)
     }
 
     const handleRead = () => {
+      console.log('✅ Notification marked as read')
       queryClient.invalidateQueries({ queryKey: notificationKeys.base })
     }
 
@@ -46,10 +57,13 @@ export const useNotificationUnreadCount = () => {
     socket.on('notification:unread-count', handleUnreadCount)
     socket.on('notification:read', handleRead)
 
+    console.log('👂 Subscribed to notification events')
+
     return () => {
       socket.off('notification:new', handleNew)
       socket.off('notification:unread-count', handleUnreadCount)
       socket.off('notification:read', handleRead)
+      console.log('🔇 Unsubscribed from notification events')
     }
   }, [queryClient])
 

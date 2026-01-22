@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ConfigProvider, App as AntdApp } from 'antd'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { queryClient } from './services/queryClient'
 import AdminRoute from './components/AdminRoute'
 import RootRedirect from './components/RootRedirect'
@@ -18,6 +18,8 @@ import AdsManagement from './pages/admin/AdsManagement'
 import PartnerPortal from './pages/admin/PartnerPortal'
 import NotificationsPage from './pages/admin/notifications/NotificationsPage'
 import { PendingBlogs, PublishedBlogs, RejectedBlogs, BlogDetail } from './pages/admin/blogs'
+import { useEffect } from 'react'
+import { initializeSocket, disconnectSocket } from './services/socket'
 
 const themeConfig = {
   token: {
@@ -26,12 +28,41 @@ const themeConfig = {
   },
 }
 
+/**
+ * Socket Initializer Component
+ * Tự động kết nối socket khi user login và ngắt kết nối khi logout
+ */
+function SocketInitializer() {
+  const { user } = useAuth()
+
+  useEffect(() => {
+    if (user) {
+      const token = localStorage.getItem('accessToken')
+      if (token) {
+        console.log('🔌 User logged in, initializing socket...')
+        initializeSocket(token)
+      }
+    } else {
+      console.log('🔌 User logged out, disconnecting socket...')
+      disconnectSocket()
+    }
+
+    // Cleanup on unmount
+    return () => {
+      disconnectSocket()
+    }
+  }, [user])
+
+  return null
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ConfigProvider theme={themeConfig}>
         <AntdApp>
         <AuthProvider>
+          <SocketInitializer />
           <Router>
           <Routes>
             {/* Auth routes */}
