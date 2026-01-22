@@ -35,38 +35,95 @@ Tài liệu này hướng dẫn thiết kế và triển khai hệ thống notif
 
 Backend notification service đã cung cấp các endpoint sau (qua Gateway):
 
-#### 1. **Lấy danh sách thông báo**
+#### 1. **Tạo Thông Báo Mới (Admin Broadcast)**
+
+Admin có thể tạo thông báo thủ công để gửi đến tất cả user hoặc chỉ admins.
 
 ```http
-GET /api/v1/notifications?page=1&limit=20&isRead=false
+POST /api/v1/notifications
 Authorization: Bearer {token}
+x-user-id: {adminUserId}
+Content-Type: application/json
 ```
 
-**Response:**
+**Request Body:**
 
 ```json
 {
-  "notifications": [
-    {
-      "_id": "123abc",
-      "userId": "ADMIN",
-      "type": "BLOG_SUBMITTED",
-      "title": "Blog mới chờ duyệt",
-      "message": "Bài viết 'Hướng dẫn React' đang chờ duyệt",
-      "metadata": {
-        "blogId": "xyz789",
-        "authorId": "user123"
-      },
-      "isRead": false,
-      "createdAt": "2026-01-22T10:30:00Z"
-    }
-  ],
-  "pagination": {
-    "total": 50,
-    "page": 1,
-    "limit": 20
-  }
+  "title": "Thông báo bảo trì hệ thống",
+  "message": "Hệ thống sẽ bảo trì từ 22h-24h hôm nay. Vui lòng lưu công việc.",
+  "type": "SYSTEM_MAINTENANCE",
+  "target": "ALL"
 }
+```
+
+**Body Parameters:**
+
+| Field     | Type   | Required | Description                                      |
+| --------- | ------ | -------- | ------------------------------------------------ |
+| `title`   | string | ✅       | Tiêu đề thông báo                                |
+| `message` | string | ✅       | Nội dung thông báo                               |
+| `type`    | string | ❌       | Loại thông báo (default: "INFO")                 |
+| `target`  | string | ✅       | `"ALL"` (gửi tất cả) hoặc `"ADMINS"` (chỉ admin) |
+
+**Response - 201 Created:**
+
+```json
+{
+  "_id": "65abc123def456789",
+  "userId": "all",
+  "title": "Thông báo bảo trì hệ thống",
+  "message": "Hệ thống sẽ bảo trì từ 22h-24h hôm nay. Vui lòng lưu công việc.",
+  "type": "SYSTEM_MAINTENANCE",
+  "metadata": {},
+  "isRead": false,
+  "createdAt": "2026-01-22T10:30:00.000Z",
+  "updatedAt": "2026-01-22T10:30:00.000Z"
+}
+```
+
+**Use Cases:**
+
+- Thông báo bảo trì hệ thống
+- Thông báo cập nhật tính năng mới
+- Thông báo khẩn cấp
+- Thông tin quan trọng cần chú ý
+
+---
+
+#### 2. **Lấy danh sách thông báo**
+
+```http
+GET /api/v1/notifications?page=1&limit=20&unreadOnly=true
+Authorization: Bearer {token}
+x-user-id: {userId}
+```
+
+**Query Parameters:**
+
+- `page`: Số trang (default: 1)
+- `limit`: Số item mỗi trang (default: 10)
+- `unreadOnly`: Filter chỉ lấy chưa đọc, value: `"true"` (optional)
+
+**Response:** Array trực tiếp (không có wrapper)
+
+```json
+[
+  {
+    "_id": "65abc123def456789",
+    "userId": "admins",
+    "type": "BLOG_SUBMITTED",
+    "title": "Blog mới chờ duyệt",
+    "message": "Blog 'Hướng dẫn React' đang chờ duyệt",
+    "metadata": {
+      "blogId": "xyz789",
+      "authorId": "user123"
+    },
+    "isRead": false,
+    "createdAt": "2026-01-22T10:30:00.000Z",
+    "updatedAt": "2026-01-22T10:30:00.000Z"
+  }
+]
 ```
 
 #### 2. **Lấy số lượng thông báo chưa đọc**
@@ -74,6 +131,7 @@ Authorization: Bearer {token}
 ```http
 GET /api/v1/notifications/unread-count
 Authorization: Bearer {token}
+x-user-id: {userId}
 ```
 
 **Response:**
@@ -89,6 +147,7 @@ Authorization: Bearer {token}
 ```http
 POST /api/v1/notifications/:id/read
 Authorization: Bearer {token}
+x-user-id: {userId}
 ```
 
 **Response:** `204 No Content`
@@ -98,6 +157,7 @@ Authorization: Bearer {token}
 ```http
 POST /api/v1/notifications/read-all
 Authorization: Bearer {token}
+x-user-id: {userId}
 ```
 
 **Response:** `204 No Content`
@@ -107,6 +167,7 @@ Authorization: Bearer {token}
 ```http
 DELETE /api/v1/notifications/:id
 Authorization: Bearer {token}
+x-user-id: {userId}
 ```
 
 **Response:** `204 No Content`
@@ -116,9 +177,62 @@ Authorization: Bearer {token}
 ```http
 DELETE /api/v1/notifications
 Authorization: Bearer {token}
+x-user-id: {userId}
 ```
 
 **Response:** `204 No Content`
+
+**⚠️ Lưu ý quan trọng về Headers:**
+
+Tất cả requests **BẮT BUỘC** phải có 2 headers:
+
+1. `Authorization: Bearer {token}` - JWT token
+2. `x-user-id: {userId}` - User ID (thường được Gateway inject tự động)
+
+Nếu frontend gọi trực tiếp service (không qua Gateway), cần tự thêm `x-user-id`.
+
+### 📌 Lưu Ý Quan Trọng Khi Tích Hợp
+
+#### 1. Response Format
+
+- **GET /notifications**: Trả về **Array trực tiếp**, KHÔNG có wrapper object
+
+  ```javascript
+  // ✅ Đúng
+  const notifications = await response.data; // Array
+
+  // ❌ Sai
+  const notifications = await response.data.notifications; // undefined
+  ```
+
+#### 2. Query Parameters
+
+- Filter chưa đọc: Dùng `unreadOnly=true` (không phải `isRead=false`)
+
+  ```javascript
+  // ✅ Đúng
+  getAll({ page: 1, limit: 20, unreadOnly: "true" });
+
+  // ❌ Sai
+  getAll({ page: 1, limit: 20, isRead: false });
+  ```
+
+#### 3. User ID cho Admin
+
+- Admin notifications có `userId = "admins"` (lowercase, số nhiều)
+- Public notifications có `userId = "all"`
+- User riêng có `userId = {userId}`
+
+#### 4. Metadata Field
+
+- `metadata` là object chứa thông tin bổ sung (blogId, authorId, etc.)
+- Có thể dùng để navigate đến trang chi tiết khi click notification
+
+#### 5. Role-based Access
+
+- Backend tự động filter notifications dựa vào `req.user.role`:
+  - `role = "ADMIN"`: Nhận notifications có userId = "admins" hoặc "all"
+  - `role = "USER"`: Nhận notifications có userId = {userId} hoặc "all"
 
 ## 🔄 Real-time Notifications
 
@@ -292,40 +406,91 @@ Thông báo được truy cập chính từ sidebar bên trái, có trang riêng
 **Layout:**
 
 ```
-┌─────────────────────────────────────────────────┐
-│  Thông báo                                      │
-│  ───────────────────────────────────────────── │
-│  [All ▼] [🔍 Search...]     [✓ Mark All Read]  │
-│  ───────────────────────────────────────────── │
-│                                                 │
-│  Hôm nay                                        │
-│  ┌─────────────────────────────────────────┐  │
-│  │ 🟦 Blog mới chờ duyệt         14:30  🗑️│  │
-│  │    Bài viết 'React Guide' cần duyệt     │  │
-│  └─────────────────────────────────────────┘  │
-│                                                 │
-│  ┌─────────────────────────────────────────┐  │
-│  │ ⬜ Thanh toán thất bại        10:15  🗑️│  │
-│  │    User #123 - Giao dịch #456           │  │
-│  └─────────────────────────────────────────┘  │
-│                                                 │
-│  Hôm qua                                        │
-│  ┌─────────────────────────────────────────┐  │
-│  │ ⬜ Người dùng mới              15:20  🗑️│  │
-│  │    admin@example.com đã đăng ký          │  │
-│  └─────────────────────────────────────────┘  │
-│                                                 │
-│  [← Prev]           Page 1 of 5      [Next →]  │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  Thông báo                      [+ Tạo Thông Báo]          │
+│  ──────────────────────────────────────────────────────── │
+│  [All ▼] [🔍 Search...]     [✓ Mark All Read]              │
+│  ──────────────────────────────────────────────────────── │
+│                                                             │
+│  Hôm nay                                                    │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │ 🟦 Blog mới chờ duyệt         14:30              🗑️│  │
+│  │    Bài viết 'React Guide' cần duyệt                 │  │
+│  └─────────────────────────────────────────────────────┘  │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │ ⬜ Thanh toán thất bại        10:15              🗑️│  │
+│  │    User #123 - Giao dịch #456                       │  │
+│  └─────────────────────────────────────────────────────┘  │
+│                                                             │
+│  Hôm qua                                                    │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │ ⬜ Người dùng mới              15:20              🗑️│  │
+│  │    admin@example.com đã đăng ký                      │  │
+│  └─────────────────────────────────────────────────────┘  │
+│                                                             │
+│  [← Prev]           Page 1 of 5                  [Next →]  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 **Features:**
 
+- **Button "Tạo Thông Báo"** (chỉ admin) - Mở modal để tạo broadcast notification
 - Filter: All, Unread, Read
 - Search trong title và message
 - Group theo ngày (Hôm nay, Hôm qua, Tuần này, Tháng này)
 - Pagination
 - Bulk actions (Select multiple → Delete/Mark read)
+
+### Create Notification Modal (Admin Only)
+
+**Design:**
+
+```
+┌────────────────────────────────────────┐
+│  Tạo Thông Báo Mới             ✕      │
+│  ──────────────────────────────────── │
+│                                        │
+│  Tiêu đề *                             │
+│  ┌──────────────────────────────────┐ │
+│  │ Thông báo bảo trì hệ thống       │ │
+│  └──────────────────────────────────┘ │
+│                                        │
+│  Nội dung *                            │
+│  ┌──────────────────────────────────┐ │
+│  │ Hệ thống sẽ bảo trì từ...       │ │
+│  │                                  │ │
+│  │                                  │ │
+│  └──────────────────────────────────┘ │
+│                                        │
+│  Loại thông báo                        │
+│  ┌──────────────────────────────────┐ │
+│  │ SYSTEM_MAINTENANCE          ▼   │ │
+│  └──────────────────────────────────┘ │
+│                                        │
+│  Gửi đến *                             │
+│  ○ Tất cả người dùng (ALL)            │
+│  ○ Chỉ Admin (ADMINS)                 │
+│                                        │
+│  ──────────────────────────────────── │
+│          [Hủy]      [Gửi Thông Báo]   │
+└────────────────────────────────────────┘
+```
+
+**Validation Rules:**
+
+- Tiêu đề: Required, min 5 chars, max 100 chars
+- Nội dung: Required, min 10 chars, max 500 chars
+- Loại: Optional (default: "INFO")
+- Target: Required (ALL hoặc ADMINS)
+
+**Notification Types để chọn:**
+
+- `INFO` - Thông tin chung
+- `SYSTEM_MAINTENANCE` - Bảo trì hệ thống
+- `FEATURE_UPDATE` - Cập nhật tính năng
+- `URGENT` - Khẩn cấp
+- `ANNOUNCEMENT` - Thông báo quan trọng
 
 ## 💻 Implementation Guide
 
@@ -361,6 +526,114 @@ src/
 │           └── notification.types.js
 ```
 
+### 📖 Complete Example: Fetch & Display Notifications
+
+Ví dụ hoàn chỉnh về cách fetch và hiển thị notifications đúng cách:
+
+```javascript
+// Example: NotificationPage.jsx
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+
+const NotificationPage = () => {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [page]);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+
+      const token = localStorage.getItem("token");
+      const userId = localStorage.getItem("userId");
+
+      const response = await axios.get("/api/v1/notifications", {
+        params: {
+          page: page,
+          limit: 20,
+          // unreadOnly: 'true' // Uncomment để chỉ lấy chưa đọc
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "x-user-id": userId,
+        },
+      });
+
+      // ✅ Backend trả về array trực tiếp
+      setNotifications(response.data);
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const userId = localStorage.getItem("userId");
+
+      await axios.post(
+        `/api/v1/notifications/${notificationId}/read`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "x-user-id": userId,
+          },
+        },
+      );
+
+      // Update UI
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n._id === notificationId ? { ...n, isRead: true } : n,
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to mark as read:", error);
+    }
+  };
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <div>
+      <h1>Thông báo</h1>
+
+      {notifications.length === 0 ? (
+        <p>Không có thông báo nào</p>
+      ) : (
+        <ul>
+          {notifications.map((notification) => (
+            <li
+              key={notification._id}
+              onClick={() => handleMarkAsRead(notification._id)}
+              className={notification.isRead ? "" : "font-bold"}
+            >
+              <h3>{notification.title}</h3>
+              <p>{notification.message}</p>
+              <small>{new Date(notification.createdAt).toLocaleString()}</small>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <button onClick={() => setPage((p) => p - 1)} disabled={page === 1}>
+        Previous
+      </button>
+      <button onClick={() => setPage((p) => p + 1)}>Next</button>
+    </div>
+  );
+};
+
+export default NotificationPage;
+```
+
 ### Code Examples
 
 #### 1. Notification Service
@@ -371,37 +644,63 @@ import axios from "axios";
 
 const API_URL = "/api/v1/notifications";
 
+// Tạo axios instance với interceptor
+const apiClient = axios.create({
+  baseURL: API_URL,
+});
+
+// Interceptor tự động thêm headers
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  const userId = localStorage.getItem("userId"); // Hoặc từ auth store
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  if (userId) {
+    config.headers["x-user-id"] = userId;
+  }
+
+  return config;
+});
+
 export const notificationService = {
+  // Tạo thông báo mới (Admin only)
+  createNotification: async (data) => {
+    const response = await apiClient.post("", data);
+    return response.data;
+  },
+
   // Lấy danh sách thông báo
   getAll: async (params = {}) => {
-    const response = await axios.get(API_URL, { params });
-    return response.data;
+    const response = await apiClient.get("", { params });
+    return response.data; // Trả về array trực tiếp
   },
 
   // Lấy số lượng chưa đọc
   getUnreadCount: async () => {
-    const response = await axios.get(`${API_URL}/unread-count`);
-    return response.data.count;
+    const response = await apiClient.get("/unread-count");
+    return response.data.count; // Backend trầ về {count: 5}
   },
 
   // Đánh dấu đã đọc
   markAsRead: async (id) => {
-    await axios.post(`${API_URL}/${id}/read`);
+    await apiClient.post(`/${id}/read`);
   },
 
   // Đánh dấu tất cả đã đọc
   markAllAsRead: async () => {
-    await axios.post(`${API_URL}/read-all`);
+    await apiClient.post("/read-all");
   },
 
   // Xóa thông báo
   deleteNotification: async (id) => {
-    await axios.delete(`${API_URL}/${id}`);
+    await apiClient.delete(`/${id}`);
   },
 
   // Xóa tất cả
   deleteAll: async () => {
-    await axios.delete(API_URL);
+    await apiClient.delete("");
   },
 };
 ```
@@ -447,7 +746,273 @@ export const useNotificationSocket = () => {
 };
 ```
 
-#### 3. Sidebar Navigation Item (Sidebar Left)
+#### 3. Create Notification Modal Component (Admin Only)
+
+```javascript
+// components/CreateNotificationModal.jsx
+import React, { useState } from "react";
+import { notificationService } from "../services/notificationService";
+
+export const CreateNotificationModal = ({ isOpen, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    title: "",
+    message: "",
+    type: "INFO",
+    target: "ALL",
+  });
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const notificationTypes = [
+    { value: "INFO", label: "Thông tin chung" },
+    { value: "SYSTEM_MAINTENANCE", label: "Bảo trì hệ thống" },
+    { value: "FEATURE_UPDATE", label: "Cập nhật tính năng" },
+    { value: "URGENT", label: "Khẩn cấp" },
+    { value: "ANNOUNCEMENT", label: "Thông báo quan trọng" },
+  ];
+
+  const validate = () => {
+    const newErrors = {};
+
+    if (!formData.title || formData.title.length < 5) {
+      newErrors.title = "Tiêu đề phải có ít nhất 5 ký tự";
+    }
+    if (formData.title.length > 100) {
+      newErrors.title = "Tiêu đề không được quá 100 ký tự";
+    }
+
+    if (!formData.message || formData.message.length < 10) {
+      newErrors.message = "Nội dung phải có ít nhất 10 ký tự";
+    }
+    if (formData.message.length > 500) {
+      newErrors.message = "Nội dung không được quá 500 ký tự";
+    }
+
+    if (!formData.target) {
+      newErrors.target = "Vui lòng chọn đối tượng nhận";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validate()) return;
+
+    try {
+      setLoading(true);
+      const result = await notificationService.createNotification(formData);
+
+      // Show success message
+      alert("Thông báo đã được gửi thành công!");
+
+      // Reset form
+      setFormData({
+        title: "",
+        message: "",
+        type: "INFO",
+        target: "ALL",
+      });
+
+      // Close modal and refresh list
+      onSuccess?.(result);
+      onClose();
+    } catch (error) {
+      console.error("Failed to create notification:", error);
+      alert("Gửi thông báo thất bại. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Tạo Thông Báo Mới</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          {/* Tiêu đề */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">
+              Tiêu đề <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Thông báo bảo trì hệ thống"
+              maxLength={100}
+            />
+            {errors.title && (
+              <p className="text-red-500 text-xs mt-1">{errors.title}</p>
+            )}
+            <p className="text-gray-400 text-xs mt-1">
+              {formData.title.length}/100
+            </p>
+          </div>
+
+          {/* Nội dung */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">
+              Nội dung <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={formData.message}
+              onChange={(e) =>
+                setFormData({ ...formData, message: e.target.value })
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={4}
+              placeholder="Hệ thống sẽ bảo trì từ 22h-24h hôm nay..."
+              maxLength={500}
+            />
+            {errors.message && (
+              <p className="text-red-500 text-xs mt-1">{errors.message}</p>
+            )}
+            <p className="text-gray-400 text-xs mt-1">
+              {formData.message.length}/500
+            </p>
+          </div>
+
+          {/* Loại thông báo */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">
+              Loại thông báo
+            </label>
+            <select
+              value={formData.type}
+              onChange={(e) =>
+                setFormData({ ...formData, type: e.target.value })
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {notificationTypes.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Gửi đến */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">
+              Gửi đến <span className="text-red-500">*</span>
+            </label>
+            <div className="space-y-2">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="target"
+                  value="ALL"
+                  checked={formData.target === "ALL"}
+                  onChange={(e) =>
+                    setFormData({ ...formData, target: e.target.value })
+                  }
+                  className="mr-2"
+                />
+                <span>Tất cả người dùng (ALL)</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="target"
+                  value="ADMINS"
+                  checked={formData.target === "ADMINS"}
+                  onChange={(e) =>
+                    setFormData({ ...formData, target: e.target.value })
+                  }
+                  className="mr-2"
+                />
+                <span>Chỉ Admin (ADMINS)</span>
+              </label>
+            </div>
+            {errors.target && (
+              <p className="text-red-500 text-xs mt-1">{errors.target}</p>
+            )}
+          </div>
+
+          {/* Footer Buttons */}
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              disabled={loading}
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+              disabled={loading}
+            >
+              {loading ? "Đang gửi..." : "Gửi Thông Báo"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+```
+
+**Usage Example:**
+
+```javascript
+// In NotificationPage.jsx
+import { CreateNotificationModal } from "./CreateNotificationModal";
+
+const NotificationPage = () => {
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+
+  const handleNotificationCreated = (newNotification) => {
+    // Refresh notifications list
+    fetchNotifications();
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h1>Thông báo</h1>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          + Tạo Thông Báo
+        </button>
+      </div>
+
+      {/* Notifications list */}
+
+      <CreateNotificationModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleNotificationCreated}
+      />
+    </div>
+  );
+};
+```
+
+#### 4. Sidebar Navigation Item (Sidebar Left)
 
 ```javascript
 // components/NotificationNavItem.jsx
@@ -612,7 +1177,8 @@ export const NotificationDropdown = ({ onClose, onCountChange }) => {
           limit: 10,
           page: 1,
         });
-        setNotifications(data.notifications);
+        // Backend trả về array trực tiếp, không có wrapper
+        setNotifications(data);
       } catch (error) {
         console.error("Failed to fetch notifications:", error);
       } finally {
@@ -919,7 +1485,9 @@ const MobileSidebar = () => {
 
 ## 🔔 Notification Types cho Admin
 
-Các loại thông báo admin cần nhận:
+### Notification Types Nhận Được
+
+Các loại thông báo admin cần nhận (tự động từ events):
 
 | Type                   | Priority | Description            | Action                   |
 | ---------------------- | -------- | ---------------------- | ------------------------ |
@@ -928,6 +1496,49 @@ Các loại thông báo admin cần nhận:
 | `USER_CREATED`         | Medium   | Người dùng mới đăng ký | View user profile        |
 | `SUBSCRIPTION_EXPIRED` | Low      | Subscription hết hạn   | View subscription list   |
 | `SYSTEM_ERROR`         | Critical | Lỗi hệ thống           | View error logs          |
+
+### Notification Types Có Thể Tạo (Broadcast)
+
+Admin có thể tạo thủ công các loại thông báo sau:
+
+| Type                 | Label                | Use Case                    |
+| -------------------- | -------------------- | --------------------------- |
+| `INFO`               | Thông tin chung      | Thông tin chung không khẩn  |
+| `SYSTEM_MAINTENANCE` | Bảo trì hệ thống     | Thông báo bảo trì, nâng cấp |
+| `FEATURE_UPDATE`     | Cập nhật tính năng   | Tính năng mới, cập nhật     |
+| `URGENT`             | Khẩn cấp             | Vấn đề cần xử lý ngay       |
+| `ANNOUNCEMENT`       | Thông báo quan trọng | Thông báo chính thức        |
+
+### Role-Based Access Control
+
+```javascript
+// Helper function to check admin permission
+const canCreateNotification = (user) => {
+  return user.role === "ADMIN" || user.role === "SUPER_ADMIN";
+};
+
+// In component
+const NotificationPage = () => {
+  const { user } = useAuth(); // Get current user
+
+  return (
+    <div>
+      <div className="flex justify-between">
+        <h1>Thông báo</h1>
+
+        {/* Only show create button for admin */}
+        {canCreateNotification(user) && (
+          <button onClick={() => setShowCreateModal(true)}>
+            + Tạo Thông Báo
+          </button>
+        )}
+      </div>
+
+      {/* ... */}
+    </div>
+  );
+};
+```
 
 ## ⚙️ Settings & Preferences
 
@@ -1032,7 +1643,7 @@ export const useNotifications = () => {
   );
 
   return {
-    notifications: data?.notifications || [],
+    notifications: data || [], // data là array trực tiếp
     isLoading,
     markAsRead: markAsReadMutation.mutate,
   };
@@ -1179,6 +1790,97 @@ const trackNotificationEvent = (action, label) => {
 trackNotificationEvent("notification_opened", "BLOG_SUBMITTED");
 trackNotificationEvent("notification_read", notificationId);
 trackNotificationEvent("notification_deleted", notificationId);
+```
+
+## ⚠️ Common Mistakes & Troubleshooting
+
+### Mistake 1: Accessing Nested Properties
+
+```javascript
+// ❌ SAI - Backend không trả về wrapper object
+const notifications = response.data.notifications; // undefined
+const count = response.data.data.count; // undefined
+
+// ✅ ĐÚNG
+const notifications = response.data; // Array trực tiếp
+const count = response.data.count; // Number trực tiếp
+```
+
+### Mistake 2: Missing Required Headers
+
+```javascript
+// ❌ SAI - Thiếu x-user-id header
+axios.get("/api/v1/notifications", {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+});
+// Result: 401 Unauthorized
+
+// ✅ ĐÚNG
+axios.get("/api/v1/notifications", {
+  headers: {
+    Authorization: `Bearer ${token}`,
+    "x-user-id": userId,
+  },
+});
+```
+
+### Mistake 3: Wrong Query Parameter
+
+```javascript
+// ❌ SAI - Backend không hỗ trợ isRead parameter
+getAll({ isRead: false });
+
+// ✅ ĐÚNG - Dùng unreadOnly
+getAll({ unreadOnly: "true" });
+```
+
+### Mistake 4: Expecting Pagination Metadata
+
+```javascript
+// ❌ SAI - Backend không trả về pagination metadata
+const { notifications, total, page } = response.data;
+
+// ✅ ĐÚNG - Tự quản lý pagination ở frontend
+const notifications = response.data;
+const hasMore = notifications.length === limit;
+```
+
+### Mistake 5: Not Handling 204 No Content
+
+```javascript
+// ❌ SAI - Expect response body
+const result = await markAsRead(id);
+console.log(result.data); // undefined vì 204 No Content
+
+// ✅ ĐÚNG - Check status code
+await markAsRead(id);
+// No response body, just update UI directly
+```
+
+### Debug Checklist
+
+Nếu gặp lỗi, check theo thứ tự:
+
+1. ✅ Headers có đầy đủ `Authorization` và `x-user-id`?
+2. ✅ Response format có đúng (Array/Object trực tiếp)?
+3. ✅ Query parameters có đúng tên (`unreadOnly`, không phải `isRead`)?
+4. ✅ userId của admin có đúng format (`"admins"`, lowercase)?
+5. ✅ Token có còn valid không (check expiry)?
+
+### Testing với cURL
+
+```bash
+# Test với đầy đủ headers
+curl -X GET "http://localhost:3003/api/v1/notifications?page=1&limit=10" \
+  -H "Authorization: Bearer eyJhbGc..." \
+  -H "x-user-id: admin123" \
+  -v
+
+# Check response format
+# Phải là array: [{"_id": "...", "title": "...", ...}]
+# Không phải: {"notifications": [...]}
 ```
 
 ## 🔐 Security Considerations

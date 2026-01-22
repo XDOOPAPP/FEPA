@@ -41,8 +41,10 @@ axiosInstance.interceptors.response.use(
         const refreshToken = localStorage.getItem('refreshToken')
 
         if (!refreshToken) {
-          // Không có refresh token -> clear storage and reject (avoid full-page redirect)
-          localStorage.clear()
+          // Không có refresh token -> clear auth tokens only
+          localStorage.removeItem('accessToken')
+          localStorage.removeItem('refreshToken')
+          sessionStorage.removeItem('user')
           return Promise.reject(error)
         }
 
@@ -61,8 +63,10 @@ axiosInstance.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${accessToken}`
         return axiosInstance(originalRequest)
       } catch (refreshError) {
-        // Refresh thất bại -> clear storage and reject (avoid full-page redirect)
-        localStorage.clear()
+        // Refresh thất bại -> clear auth tokens only
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('refreshToken')
+        sessionStorage.removeItem('user')
         return Promise.reject(refreshError)
       }
     }

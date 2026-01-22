@@ -44,10 +44,12 @@ const NotificationsPage: React.FC = () => {
     return params
   }, [filter, page, pageSize, search])
 
-  const { data, isLoading, isFetching, refetch } = useNotificationList(filters)
+  const { data, isLoading, isFetching, refetch, error } = useNotificationList(filters)
 
   console.log('🔔 NotificationsPage - data from hook:', data)
   console.log('🔔 NotificationsPage - isLoading:', isLoading)
+  console.log('🔔 NotificationsPage - error:', error)
+  console.log('🔔 NotificationsPage - user:', user)
   
   // Backend chỉ hỗ trợ filter unread, nên filter 'read' phải làm ở client
   const allNotifications = data?.notifications || []
@@ -91,7 +93,7 @@ const NotificationsPage: React.FC = () => {
     refetch()
   }
 
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = user?.role === 'ADMIN'
 
   return (
     <div className="notifications-page">
@@ -158,7 +160,24 @@ const NotificationsPage: React.FC = () => {
       </div>
 
       <div className="notifications-page__list">
-        {isLoading ? (
+        {error ? (
+          <div style={{ padding: 48 }}>
+            <Empty 
+              description={
+                <div>
+                  <p>Không thể tải thông báo</p>
+                  <p style={{ color: '#999', fontSize: 12 }}>
+                    {(error as any)?.message || 'Đã xảy ra lỗi khi tải dữ liệu'}
+                  </p>
+                  <Button type="primary" onClick={() => refetch()} style={{ marginTop: 12 }}>
+                    Thử lại
+                  </Button>
+                </div>
+              } 
+              image={Empty.PRESENTED_IMAGE_SIMPLE} 
+            />
+          </div>
+        ) : isLoading ? (
           <div style={{ padding: 32, textAlign: 'center' }}>
             <Spin />
           </div>

@@ -180,7 +180,7 @@ const UserManagement: React.FC = () => {
       Email: user.email,
       'Họ tên': user.fullName,
       'Số điện thoại': user.phone || '',
-      'Vai trò': user.role === 'admin' ? 'Admin' : 'User',
+      'Vai trò': user.role === 'ADMIN' ? 'Admin' : 'User',
       'Trạng thái': user.status === 'active' ? 'Hoạt động' : 'Đã khóa',
       'Ngày tạo': dayjs(user.createdAt).format('DD/MM/YYYY HH:mm'),
       'Đăng nhập cuối': dayjs(user.lastLogin).format('DD/MM/YYYY HH:mm'),
@@ -229,8 +229,8 @@ const UserManagement: React.FC = () => {
       dataIndex: 'role',
       key: 'role',
       render: (role: string) => (
-        <Tag color={role === 'admin' ? 'red' : 'blue'}>
-          {role === 'admin' ? 'Admin' : 'User'}
+        <Tag color={role === 'ADMIN' ? 'red' : 'blue'}>
+          {role === 'ADMIN' ? 'Admin' : 'User'}
         </Tag>
       ),
       filters: [

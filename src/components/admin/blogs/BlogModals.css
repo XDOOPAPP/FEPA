@@ -1,0 +1,72 @@
+.approve-modal,
+.reject-modal {
+  /* Modal styling */
+}
+
+.approve-modal .ant-modal-header,
+.reject-modal .ant-modal-header {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.approve-modal .ant-modal-title,
+.reject-modal .ant-modal-title {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.modal-content {
+  padding: 12px 0;
+}
+
+.blog-info {
+  background: #fafafa;
+  padding: 16px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.blog-info p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #262626;
+}
+
+.blog-info p strong {
+  color: #262626;
+}
+
+.status-message {
+  margin-top: 12px !important;
+  padding-top: 12px !important;
+  border-top: 1px solid #d9d9d9;
+  font-weight: 500;
+  color: #52c41a;
+}
+
+.status-message.warning {
+  color: #faad14;
+}
+
+.ant-form-item {
+  margin-bottom: 0;
+}
+
+.ant-form-item label {
+  font-weight: 500;
+  color: #262626;
+}
+
+.ant-input-textarea textarea {
+  border-radius: 4px;
+}
+
+.ant-input-textarea textarea:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.ant-modal-footer {
+  padding: 16px 0;
+  border-top: 1px solid #f0f0f0;
+  text-align: right;
+}

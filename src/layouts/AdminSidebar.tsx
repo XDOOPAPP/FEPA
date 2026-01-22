@@ -5,7 +5,8 @@ import {
   UserOutlined, 
   SettingOutlined,
   CrownOutlined,
-  BellOutlined
+  BellOutlined,
+  BookOutlined
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useNotificationUnreadCount } from '../hooks/useNotifications'
@@ -28,6 +29,28 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
       icon: <DashboardOutlined />,
       label: 'Dashboard',
       onClick: () => navigate('/admin/dashboard')
+    },
+    {
+      key: '/admin/blogs',
+      icon: <BookOutlined />,
+      label: 'Blog Management',
+      children: [
+        {
+          key: '/admin/blogs/pending',
+          label: 'Pending Reviews',
+          onClick: () => navigate('/admin/blogs/pending')
+        },
+        {
+          key: '/admin/blogs/published',
+          label: 'Published Blogs',
+          onClick: () => navigate('/admin/blogs/published')
+        },
+        {
+          key: '/admin/blogs/rejected',
+          label: 'Rejected Blogs',
+          onClick: () => navigate('/admin/blogs/rejected')
+        }
+      ]
     },
     {
       key: '/admin/notifications',
@@ -77,6 +100,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
         theme="dark"
         mode="inline"
         selectedKeys={[location.pathname]}
+        defaultOpenKeys={location.pathname.startsWith('/admin/blogs') ? ['/admin/blogs'] : []}
         items={menuItems}
       />
     </Sider>

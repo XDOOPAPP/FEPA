@@ -31,8 +31,9 @@ export const blogAPI = {
 		};
 
 		const response = await axiosInstance.get(API_CONFIG.BLOGS.LIST, { params: queryParams });
+		console.log('📝 Blog List API Response:', response);
 		
-		// Backend returns array directly, need to wrap in BlogListResponse format
+		// Backend returns array directly
 		if (Array.isArray(response)) {
 			return {
 				data: response,
@@ -42,8 +43,28 @@ export const blogAPI = {
 			};
 		}
 		
-		// If already in correct format, return as is
-		return response as BlogListResponse;
+		// If response has data property (wrapped format)
+		if (response && typeof response === 'object' && 'data' in response && Array.isArray(response.data)) {
+			return {
+				data: response.data,
+				total: response.data.length,
+				page: 1,
+				limit: response.data.length,
+			};
+		}
+		
+		// If already in correct format with pagination
+		if (response && typeof response === 'object' && 'data' in response && 'total' in response) {
+			return response as unknown as BlogListResponse;
+		}
+		
+		console.warn('📝 Unexpected blog list response format, returning empty');
+		return {
+			data: [],
+			total: 0,
+			page: 1,
+			limit: 10,
+		};
 	},
 
 	/**
@@ -72,7 +93,19 @@ export const blogAPI = {
 	 */
 	getBlogDetail: async (id: string): Promise<Blog> => {
 		const response = await axiosInstance.get(API_CONFIG.BLOGS.DETAIL(id));
-		return response as Blog;
+		console.log('📝 Blog Detail API Response:', response);
+		
+		// Backend có thể trả về trực tiếp object hoặc trong wrapper {data: {...}}
+		if (response && typeof response === 'object') {
+			// Nếu có data property, lấy nó
+			if ('data' in response && response.data) {
+				return response.data as unknown as Blog;
+			}
+			// Nếu không, response chính là blog object
+			return response as unknown as Blog;
+		}
+		
+		throw new Error('Invalid response format');
 	},
 
 	/**
@@ -80,7 +113,7 @@ export const blogAPI = {
 	 */
 	approveBlog: async (id: string, params?: ApproveParams): Promise<BlogActionResponse> => {
 		const response = await axiosInstance.post(API_CONFIG.BLOGS.APPROVE(id), params);
-		return response as BlogActionResponse;
+		return response as unknown as BlogActionResponse;
 	},
 
 	/**
@@ -88,7 +121,7 @@ export const blogAPI = {
 	 */
 	rejectBlog: async (id: string, params: RejectParams): Promise<BlogActionResponse> => {
 		const response = await axiosInstance.post(API_CONFIG.BLOGS.REJECT(id), params);
-		return response as BlogActionResponse;
+		return response as unknown as BlogActionResponse;
 	},
 
 	/**

@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id: userData.id || userData._id,
                 email: userData.email,
                 fullName: userData.fullName,
-                role: userData.role || 'admin',
+                role: userData.role || 'ADMIN',
                 avatar: userData.avatar || parsedUser.avatar
               };
               setUser(userProfile);
@@ -72,11 +72,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let accessToken, refreshToken, userData;
 
       // Handle different response formats
-      if (response?.accessToken) {
+      const responseAny = response as any;
+      if (responseAny?.accessToken) {
         // Direct format: { accessToken, refreshToken, user }
-        accessToken = response.accessToken;
-        refreshToken = response.refreshToken;
-        userData = response.user;
+        accessToken = responseAny.accessToken;
+        refreshToken = responseAny.refreshToken;
+        userData = responseAny.user;
       } else if (response?.data?.accessToken) {
         // Wrapped format: { data: { accessToken, refreshToken, user } }
         accessToken = response.data.accessToken;
@@ -134,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: userData.id || userData._id,
         email: userData.email,
         fullName: userData.fullName,
-        role: userData.role || 'admin',
+        role: userData.role || 'ADMIN',
         avatar: userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.fullName)}&background=1890ff&color=fff`
       };
 

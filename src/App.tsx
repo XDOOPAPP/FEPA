@@ -17,6 +17,7 @@ import AdminSubscription from './pages/admin/AdminSubscription'
 import AdsManagement from './pages/admin/AdsManagement'
 import PartnerPortal from './pages/admin/PartnerPortal'
 import NotificationsPage from './pages/admin/notifications/NotificationsPage'
+import { PendingBlogs, PublishedBlogs, RejectedBlogs, BlogDetail } from './pages/admin/blogs'
 
 const themeConfig = {
   token: {
@@ -56,6 +57,51 @@ function App() {
                 <AdminRoute>
                   <AdminLayout>
                     <NotificationsPage />
+                  </AdminLayout>
+                </AdminRoute>
+              } 
+            />
+
+            {/* Blog Management Routes */}
+            <Route 
+              path="/admin/blogs/pending" 
+              element={
+                <AdminRoute>
+                  <AdminLayout>
+                    <PendingBlogs />
+                  </AdminLayout>
+                </AdminRoute>
+              } 
+            />
+
+            <Route 
+              path="/admin/blogs/published" 
+              element={
+                <AdminRoute>
+                  <AdminLayout>
+                    <PublishedBlogs />
+                  </AdminLayout>
+                </AdminRoute>
+              } 
+            />
+
+            <Route 
+              path="/admin/blogs/rejected" 
+              element={
+                <AdminRoute>
+                  <AdminLayout>
+                    <RejectedBlogs />
+                  </AdminLayout>
+                </AdminRoute>
+              } 
+            />
+
+            <Route 
+              path="/admin/blogs/:id" 
+              element={
+                <AdminRoute>
+                  <AdminLayout>
+                    <BlogDetail />
                   </AdminLayout>
                 </AdminRoute>
               } 
