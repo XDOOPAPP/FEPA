@@ -6,6 +6,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import subscriptionAPI from './api/subscriptionAPI'
 import type { SubscriptionStatsMap } from './api/subscriptionAPI'
+import expenseAPI from './api/expenseAPI'
+import type { ExpenseAdminStats } from './api/expenseAPI'
+import budgetAPI from './api/budgetAPI'
+import type { BudgetAdminStats } from './api/budgetAPI'
+import ocrAPI from './api/ocrAPI'
+import type { OcrAdminStats } from './api/ocrAPI'
 // import axiosInstance from './api/axiosInstance' // Uncomment khi cần dùng
 import { message } from 'antd'
 
@@ -391,6 +397,60 @@ export const useCancelSubscription = () => {
     onError: (error: any) => {
       message.error(error.response?.data?.message || 'Lỗi khi hủy subscription')
     },
+  })
+}
+
+// ==================== EXPENSE SERVICE ====================
+
+/**
+ * Lấy thống kê expense toàn hệ thống (Admin)
+ * GET /api/v1/expenses/admin/stats
+ */
+export const useGetExpenseAdminStats = () => {
+  return useQuery({
+    queryKey: ['expenses', 'admin', 'stats'],
+    queryFn: async () => {
+      const response = await expenseAPI.getAdminStats()
+      return response as ExpenseAdminStats
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 3,
+  })
+}
+
+// ==================== BUDGET SERVICE ====================
+
+/**
+ * Lấy thống kê budget toàn hệ thống (Admin)
+ * GET /api/v1/budgets/admin/stats
+ */
+export const useGetBudgetAdminStats = () => {
+  return useQuery({
+    queryKey: ['budgets', 'admin', 'stats'],
+    queryFn: async () => {
+      const response = await budgetAPI.getAdminStats()
+      return response as BudgetAdminStats
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 3,
+  })
+}
+
+// ==================== OCR SERVICE ====================
+
+/**
+ * Lấy thống kê OCR toàn hệ thống (Admin)
+ * GET /api/v1/ocr/admin/stats
+ */
+export const useGetOcrAdminStats = () => {
+  return useQuery({
+    queryKey: ['ocr', 'admin', 'stats'],
+    queryFn: async () => {
+      const response = await ocrAPI.getAdminStats()
+      return response as OcrAdminStats
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 3,
   })
 }
 

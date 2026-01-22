@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react'
-import { Card, Row, Col, Statistic, Tag, Space, Typography, List, Avatar } from 'antd'
+import { Card, Row, Col, Statistic, Tag, Space, Typography, List, Avatar, Spin } from 'antd'
 import {
   UserOutlined,
   DollarOutlined,
   TeamOutlined,
   BellOutlined,
-  CheckCircleOutlined
+  CheckCircleOutlined,
+  ShoppingOutlined,
+  WalletOutlined,
+  LoadingOutlined,
+  PieChartOutlined,
+  BarChartOutlined,
+  CameraOutlined,
+  ScanOutlined
 } from '@ant-design/icons'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import dayjs from 'dayjs'
 import subscriptionAPI from '../../services/api/subscriptionAPI'
+import { useGetExpenseAdminStats, useGetBudgetAdminStats, useGetOcrAdminStats } from '../../services/queries'
 
 const { Title, Text } = Typography
 
@@ -21,6 +29,15 @@ const AdminDashboard: React.FC = () => {
   })
   const [recentActivities, setRecentActivities] = useState<any[]>([])
   const [monthlyData, setMonthlyData] = useState<any[]>([])
+
+  // Fetch expense stats
+  const { data: expenseStats, isLoading: isLoadingExpenseStats } = useGetExpenseAdminStats()
+  
+  // Fetch budget stats
+  const { data: budgetStats, isLoading: isLoadingBudgetStats } = useGetBudgetAdminStats()
+  
+  // Fetch OCR stats
+  const { data: ocrStats, isLoading: isLoadingOcrStats } = useGetOcrAdminStats()
 
   useEffect(() => {
     loadDashboardData()
@@ -166,6 +183,84 @@ const AdminDashboard: React.FC = () => {
   return (
     <div style={{ padding: '24px' }}>
       <Title level={2}>Admin Dashboard</Title>
+
+      {/* User Statistics Cards */}
+      <Card title="Thống kê Hệ thống" style={{ marginBottom: '24px' }}>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} md={6}>
+            <Card hoverable>
+              <Spin spinning={isLoadingExpenseStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
+                <Statistic
+                  title="Số người dùng có chi tiêu"
+                  value={expenseStats?.totalUsers || 0}
+                  prefix={<TeamOutlined />}
+                  valueStyle={{ color: '#1890ff' }}
+                />
+              </Spin>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card hoverable>
+              <Spin spinning={isLoadingBudgetStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
+                <Statistic
+                  title="Số người dùng có ngân sách"
+                  value={budgetStats?.totalUsers || 0}
+                  prefix={<TeamOutlined />}
+                  valueStyle={{ color: '#722ed1' }}
+                />
+              </Spin>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card hoverable>
+              <Spin spinning={isLoadingExpenseStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
+                <Statistic
+                  title="Tổng số chi tiêu"
+                  value={expenseStats?.totalExpenses || 0}
+                  prefix={<ShoppingOutlined />}
+                  valueStyle={{ color: '#52c41a' }}
+                />
+              </Spin>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card hoverable>
+              <Spin spinning={isLoadingBudgetStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
+                <Statistic
+                  title="Tổng số ngân sách"
+                  value={budgetStats?.totalBudgets || 0}
+                  prefix={<PieChartOutlined />}
+                  valueStyle={{ color: '#faad14' }}
+                />
+              </Spin>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card hoverable>
+              <Spin spinning={isLoadingOcrStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
+                <Statistic
+                  title="Tổng số lượt quét OCR"
+                  value={ocrStats?.totalJobs || 0}
+                  prefix={<ScanOutlined />}
+                  valueStyle={{ color: '#13c2c2' }}
+                />
+              </Spin>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card hoverable>
+              <Spin spinning={isLoadingOcrStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
+                <Statistic
+                  title="Số người dùng dùng OCR"
+                  value={ocrStats?.totalUsers || 0}
+                  prefix={<CameraOutlined />}
+                  valueStyle={{ color: '#eb2f96' }}
+                />
+              </Spin>
+            </Card>
+          </Col>
+        </Row>
+      </Card>
 
       {/* Statistics Cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
