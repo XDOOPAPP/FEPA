@@ -77,11 +77,6 @@ const NotificationsPage: React.FC = () => {
         navigate('/admin/subscription')
         break
       
-      case 'SYSTEM_MAINTENANCE':
-      case 'SYSTEM_ERROR':
-        navigate('/admin/system-health')
-        break
-      
       case 'INFO':
       case 'ANNOUNCEMENT':
       case 'FEATURE_UPDATE':

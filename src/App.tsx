@@ -16,8 +16,6 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminSubscription from './pages/admin/AdminSubscription'
 import AdsManagement from './pages/admin/AdsManagement'
 import PartnerPortal from './pages/admin/PartnerPortal'
-import SystemSettings from './pages/admin/SystemSettings'
-import SystemHealth from './pages/admin/SystemHealth'
 import NotificationsPage from './pages/admin/notifications/NotificationsPage'
 
 const themeConfig = {
@@ -115,28 +113,6 @@ function App() {
                 <AdminRoute>
                   <AdminLayout>
                     <PartnerPortal />
-                  </AdminLayout>
-                </AdminRoute>
-              } 
-            />
-            
-            <Route 
-              path="/admin/system-settings" 
-              element={
-                <AdminRoute>
-                  <AdminLayout>
-                    <SystemSettings />
-                  </AdminLayout>
-                </AdminRoute>
-              } 
-            />
-            
-            <Route 
-              path="/admin/system-health" 
-              element={
-                <AdminRoute>
-                  <AdminLayout>
-                    <SystemHealth />
                   </AdminLayout>
                 </AdminRoute>
               } 

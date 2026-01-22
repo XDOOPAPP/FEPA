@@ -4,8 +4,7 @@ import {
   DashboardOutlined, 
   UserOutlined, 
   SettingOutlined,
-  CrownOutlined,
-  ControlOutlined
+  CrownOutlined
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 import './Sidebar.css'
@@ -33,23 +32,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
       icon: <CrownOutlined />,
       label: 'Subscription',
       onClick: () => navigate('/admin/subscription')
-    },
-    {
-      key: 'system',
-      icon: <ControlOutlined />,
-      label: 'System',
-      children: [
-        {
-          key: '/admin/system-settings',
-          label: 'Settings',
-          onClick: () => navigate('/admin/system-settings')
-        },
-        {
-          key: '/admin/system-health',
-          label: 'Health Monitor',
-          onClick: () => navigate('/admin/system-health')
-        }
-      ]
     },
     {
       key: '/admin/profile',
