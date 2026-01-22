@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ConfigProvider, App as AntdApp } from 'antd'
 import { QueryClientProvider } from '@tanstack/react-query'
-import React from 'react'
 import { AuthProvider } from './context/AuthContext'
 import { queryClient } from './services/queryClient'
 import AdminRoute from './components/AdminRoute'
@@ -14,17 +13,12 @@ import SettingsPage from './pages/settings/SettingsPage'
 import ClearStorage from './pages/ClearStorage'
 // Admin pages
 import AdminDashboard from './pages/admin/AdminDashboard'
-import UserManagement from './pages/admin/UserManagement'
-// Core management pages removed from routes
-import AdminReports from './pages/admin/AdminReports'
 import AdminSubscription from './pages/admin/AdminSubscription'
 import AdsManagement from './pages/admin/AdsManagement'
 import PartnerPortal from './pages/admin/PartnerPortal'
 import SystemSettings from './pages/admin/SystemSettings'
 import SystemHealth from './pages/admin/SystemHealth'
 import NotificationsPage from './pages/admin/notifications/NotificationsPage'
-// Blog management pages
-import { PendingBlogs, PublishedBlogs, RejectedBlogs, BlogDetail } from './pages/admin/blogs'
 
 const themeConfig = {
   token: {
@@ -59,17 +53,6 @@ function App() {
             />
             
             <Route 
-              path="/admin/users" 
-              element={
-                <AdminRoute>
-                  <AdminLayout>
-                    <UserManagement />
-                  </AdminLayout>
-                </AdminRoute>
-              } 
-            />
-            
-            <Route 
               path="/admin/notifications" 
               element={
                 <AdminRoute>
@@ -83,67 +66,11 @@ function App() {
             {/* Core management routes removed */}
             
             <Route 
-              path="/admin/reports" 
-              element={
-                <AdminRoute>
-                  <AdminLayout>
-                    <AdminReports />
-                  </AdminLayout>
-                </AdminRoute>
-              } 
-            />
-            
-            <Route 
               path="/admin/subscription" 
               element={
                 <AdminRoute>
                   <AdminLayout>
                     <AdminSubscription />
-                  </AdminLayout>
-                </AdminRoute>
-              } 
-            />
-            
-            {/* Blog Management Routes */}
-            <Route 
-              path="/admin/blogs/pending" 
-              element={
-                <AdminRoute>
-                  <AdminLayout>
-                    <PendingBlogs />
-                  </AdminLayout>
-                </AdminRoute>
-              } 
-            />
-            
-            <Route 
-              path="/admin/blogs/published" 
-              element={
-                <AdminRoute>
-                  <AdminLayout>
-                    <PublishedBlogs />
-                  </AdminLayout>
-                </AdminRoute>
-              } 
-            />
-            
-            <Route 
-              path="/admin/blogs/rejected" 
-              element={
-                <AdminRoute>
-                  <AdminLayout>
-                    <RejectedBlogs />
-                  </AdminLayout>
-                </AdminRoute>
-              } 
-            />
-            
-            <Route 
-              path="/admin/blogs/:id" 
-              element={
-                <AdminRoute>
-                  <AdminLayout>
-                    <BlogDetail />
                   </AdminLayout>
                 </AdminRoute>
               } 

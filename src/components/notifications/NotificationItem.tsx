@@ -16,7 +16,6 @@ const iconMap: Record<string, string> = {
   BLOG_REJECTED: '❌',
   PAYMENT_SUCCESS: '💳',
   PAYMENT_FAILED: '⚠️',
-  USER_CREATED: '👤',
   SUBSCRIPTION_EXPIRED: '⏰',
   SYSTEM_ERROR: '🛑',
 }

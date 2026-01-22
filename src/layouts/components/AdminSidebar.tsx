@@ -3,12 +3,8 @@ import { Layout, Menu } from 'antd'
 import { 
   DashboardOutlined, 
   UserOutlined, 
-  ShoppingOutlined, 
-  FileTextOutlined, 
   SettingOutlined,
-  TeamOutlined,
   CrownOutlined,
-  ReadOutlined,
   ControlOutlined
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -31,41 +27,12 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
       label: 'Dashboard',
       onClick: () => navigate('/admin/dashboard')
     },
-    {
-      key: '/admin/users',
-      icon: <TeamOutlined />,
-      label: 'User Management',
-      onClick: () => navigate('/admin/users')
-    },
     // Core Management removed per admin UI decisions
-    {
-      key: '/admin/reports',
-      icon: <FileTextOutlined />,
-      label: 'Reports',
-      onClick: () => navigate('/admin/reports')
-    },
     {
       key: '/admin/subscription',
       icon: <CrownOutlined />,
       label: 'Subscription',
       onClick: () => navigate('/admin/subscription')
-    },
-    {
-      key: 'content',
-      icon: <ReadOutlined />,
-      label: 'Content Management',
-      children: [
-        {
-          key: '/admin/ads',
-          label: 'Advertisements',
-          onClick: () => navigate('/admin/ads')
-        },
-        {
-          key: '/admin/partners',
-          label: 'Partner Portal',
-          onClick: () => navigate('/admin/partners')
-        }
-      ]
     },
     {
       key: 'system',

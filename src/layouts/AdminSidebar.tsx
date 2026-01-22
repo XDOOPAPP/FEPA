@@ -3,14 +3,9 @@ import { Layout, Menu, Badge } from 'antd'
 import { 
   DashboardOutlined, 
   UserOutlined, 
-  ShoppingOutlined, 
-  FileTextOutlined, 
   SettingOutlined,
-  TeamOutlined,
   CrownOutlined,
-  ReadOutlined,
   ControlOutlined,
-  BookOutlined,
   BellOutlined
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -36,12 +31,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
       onClick: () => navigate('/admin/dashboard')
     },
     {
-      key: '/admin/users',
-      icon: <TeamOutlined />,
-      label: 'User Management',
-      onClick: () => navigate('/admin/users')
-    },
-    {
       key: '/admin/notifications',
       icon: (
         <Badge count={unreadCount || 0} offset={[12, 0]} size="small">
@@ -53,55 +42,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
     },
     // Core Management removed per admin UI decisions
     {
-      key: '/admin/reports',
-      icon: <FileTextOutlined />,
-      label: 'Reports',
-      onClick: () => navigate('/admin/reports')
-    },
-    {
       key: '/admin/subscription',
       icon: <CrownOutlined />,
       label: 'Subscription',
       onClick: () => navigate('/admin/subscription')
-    },
-    {
-      key: 'blogs',
-      icon: <BookOutlined />,
-      label: 'Blog Management',
-      children: [
-        {
-          key: '/admin/blogs/pending',
-          label: 'Pending Reviews',
-          onClick: () => navigate('/admin/blogs/pending')
-        },
-        {
-          key: '/admin/blogs/published',
-          label: 'Published Blogs',
-          onClick: () => navigate('/admin/blogs/published')
-        },
-        {
-          key: '/admin/blogs/rejected',
-          label: 'Rejected Blogs',
-          onClick: () => navigate('/admin/blogs/rejected')
-        }
-      ]
-    },
-    {
-      key: 'content',
-      icon: <ReadOutlined />,
-      label: 'Content Management',
-      children: [
-        {
-          key: '/admin/ads',
-          label: 'Advertisements',
-          onClick: () => navigate('/admin/ads')
-        },
-        {
-          key: '/admin/partners',
-          label: 'Partner Portal',
-          onClick: () => navigate('/admin/partners')
-        }
-      ]
     },
     {
       key: 'system',

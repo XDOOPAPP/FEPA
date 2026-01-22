@@ -66,31 +66,11 @@ const NotificationsPage: React.FC = () => {
   const handleNavigate = (notification: NotificationItemType) => {
     // Navigate based on notification type and metadata
     switch (notification.type) {
-      case 'BLOG_SUBMITTED':
-      case 'BLOG_APPROVED':
-      case 'BLOG_REJECTED':
-        if (notification.metadata?.blogId) {
-          navigate(`/admin/blogs/${notification.metadata.blogId}`)
-        } else {
-          navigate('/admin/blogs/pending')
-        }
-        break
-      
       case 'PAYMENT_FAILED':
       case 'PAYMENT_SUCCESS':
         // TODO: Navigate to payment details page when available
         // navigate(`/admin/payments/${notification.metadata?.paymentRef}`)
         navigate('/admin/subscription')
-        break
-      
-      case 'USER_CREATED':
-        if (notification.metadata?.authorId) {
-          // TODO: Navigate to user detail page when available
-          // navigate(`/admin/users/${notification.metadata.authorId}`)
-          navigate('/admin/users')
-        } else {
-          navigate('/admin/users')
-        }
         break
       
       case 'SUBSCRIPTION_EXPIRED':
@@ -108,8 +88,6 @@ const NotificationsPage: React.FC = () => {
       case 'URGENT':
       default:
         // For general notifications, stay on notifications page (don't navigate)
-        // Or optionally navigate to dashboard
-        // navigate('/admin/dashboard')
         break
     }
   }
@@ -118,7 +96,7 @@ const NotificationsPage: React.FC = () => {
     refetch()
   }
 
-  const isAdmin = user?.role === 'ADMIN'
+  const isAdmin = user?.role === 'admin'
 
   return (
     <div className="notifications-page">
