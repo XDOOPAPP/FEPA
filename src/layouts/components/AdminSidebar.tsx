@@ -4,7 +4,9 @@ import {
   DashboardOutlined, 
   UserOutlined, 
   SettingOutlined,
-  CrownOutlined
+  CrownOutlined,
+  TeamOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 import './Sidebar.css'
@@ -26,7 +28,18 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
       label: 'Dashboard',
       onClick: () => navigate('/admin/dashboard')
     },
-    // Core Management removed per admin UI decisions
+    {
+      key: '/admin/admins',
+      icon: <SafetyOutlined />,
+      label: 'Quản lý Admin',
+      onClick: () => navigate('/admin/admins')
+    },
+    {
+      key: '/admin/users',
+      icon: <TeamOutlined />,
+      label: 'Quản lý User',
+      onClick: () => navigate('/admin/users')
+    },
     {
       key: '/admin/subscription',
       icon: <CrownOutlined />,

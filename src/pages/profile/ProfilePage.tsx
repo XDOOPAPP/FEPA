@@ -71,7 +71,7 @@ const ProfilePage: React.FC = () => {
                 size={120} 
                 icon={<UserOutlined />} 
                 src={defaultAvatar}
-                style={{ backgroundColor: '#1890ff' }}
+                style={{ backgroundColor: 'var(--primary)' }}
               />
               <div>
                 <Title level={4} style={{ marginBottom: '4px' }}>{user.fullName}</Title>
@@ -80,7 +80,7 @@ const ProfilePage: React.FC = () => {
               </div>
               <div style={{ 
                 padding: '12px', 
-                background: '#f0f2f5', 
+                background: 'var(--bg-base)', 
                 borderRadius: '8px',
                 width: '100%'
               }}>

@@ -14,6 +14,7 @@ import ClearStorage from './pages/ClearStorage'
 // Admin pages
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminSubscription from './pages/admin/AdminSubscription'
+import AdminManagement from './pages/admin/AdminManagement'
 import AdsManagement from './pages/admin/AdsManagement'
 import PartnerPortal from './pages/admin/PartnerPortal'
 import NotificationsPage from './pages/admin/notifications/NotificationsPage'
@@ -23,8 +24,17 @@ import { initializeSocket, disconnectSocket } from './services/socket'
 
 const themeConfig = {
   token: {
-    colorPrimary: '#1890ff',
-    borderRadius: 6,
+    colorPrimary: '#0EA5E9',      // Sky Blue - FEPA Brand Primary
+    colorSuccess: '#10B981',       // Green - Success states
+    colorError: '#F43F5E',         // Rose - Error states  
+    colorWarning: '#F59E0B',       // Amber - Warning states
+    colorInfo: '#0EA5E9',          // Info messages
+    colorBgBase: '#F8FAFC',        // Slate 50 - Page background
+    colorBgContainer: '#FFFFFF',   // White - Card/Container background
+    colorText: '#0F172A',          // Slate 900 - Primary text
+    colorTextSecondary: '#64748B', // Slate 500 - Secondary text
+    borderRadius: 12,              // 12px - Modern rounded corners
+    fontSize: 14,                  // Base font size
   },
 }
 
@@ -139,6 +149,17 @@ function App() {
             />
             
             {/* Core management routes removed */}
+            
+            <Route 
+              path="/admin/admins" 
+              element={
+                <AdminRoute>
+                  <AdminLayout>
+                    <AdminManagement />
+                  </AdminLayout>
+                </AdminRoute>
+              } 
+            />
             
             <Route 
               path="/admin/subscription" 

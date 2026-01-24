@@ -76,7 +76,7 @@ const Header: React.FC<HeaderProps> = ({ collapsed, onCollapsedChange }) => {
             size="large" 
             icon={<UserOutlined />} 
             src={user?.avatar}
-            style={{ cursor: 'pointer', background: '#1890ff' }} 
+            style={{ cursor: 'pointer', background: 'var(--primary)' }} 
           />
         </Dropdown>
       </Space>
