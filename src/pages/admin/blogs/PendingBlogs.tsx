@@ -15,14 +15,26 @@ const PendingBlogs: React.FC = () => {
   const [approveModalVisible, setApproveModalVisible] = useState(false)
   const [rejectModalVisible, setRejectModalVisible] = useState(false)
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null)
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'pending'>('pending')
+  const [searchTerm, setSearchTerm] = useState('')
 
-  // Fetch pending blogs
+  // Fetch all blogs for admin review
   const { data: blogsResponse, isLoading, refetch } = useQuery({
-    queryKey: ['pendingBlogs'],
-    queryFn: () => blogAPI.getPendingBlogs(),
+    queryKey: ['allBlogsForAdminReview'],
+    queryFn: () => blogAPI.getAllBlogsForAdminReview(),
   })
 
   const blogs = blogsResponse?.data || []
+
+  // Filter blogs based on statusFilter and searchTerm
+  const filteredBlogs = blogs.filter(blog => {
+    const matchesStatus = statusFilter === 'ALL' || blog.status === statusFilter
+    const matchesSearch = searchTerm === '' || 
+      blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      blog.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      blog.userId.toLowerCase().includes(searchTerm.toLowerCase())
+    return matchesStatus && matchesSearch
+  })
 
   const handleViewDetail = (blog: Blog) => {
     navigate(`/admin/blogs/${blog.id}`)
@@ -61,7 +73,7 @@ const PendingBlogs: React.FC = () => {
 
     setLoading(true)
     try {
-      await blogAPI.rejectBlog(selectedBlog.id, { reason })
+      await blogAPI.rejectBlog(selectedBlog.id, { rejectionReason: reason })
       message.success('Bài viết đã bị từ chối')
       setRejectModalVisible(false)
       setSelectedBlog(null)
@@ -85,10 +97,10 @@ const PendingBlogs: React.FC = () => {
     },
     {
       title: 'Tác giả',
-      dataIndex: ['author', 'name'],
+      dataIndex: 'author',
       key: 'author',
       width: 150,
-      render: (text: string) => text || 'N/A',
+      render: (author: string | null | undefined, record: Blog) => author || record.userId || 'N/A',
     },
     {
       title: 'Ngày gửi',
@@ -102,9 +114,16 @@ const PendingBlogs: React.FC = () => {
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (status: string) => (
-        <Tag color="orange">{status === 'pending' ? 'Chờ duyệt' : status}</Tag>
-      ),
+      render: (status: string) => {
+        const statusMap: Record<string, { label: string; color: string }> = {
+          'pending': { label: 'Chờ duyệt', color: 'orange' },
+          'draft': { label: 'Nháp', color: 'default' },
+          'published': { label: 'Đã xuất bản', color: 'green' },
+          'rejected': { label: 'Bị từ chối', color: 'red' },
+        };
+        const { label, color } = statusMap[status] || { label: status, color: 'default' };
+        return <Tag color={color}>{label}</Tag>;
+      },
     },
     {
       title: 'Hành động',
@@ -126,6 +145,8 @@ const PendingBlogs: React.FC = () => {
             icon={<CheckOutlined />}
             style={{ backgroundColor: '#52c41a' }}
             onClick={() => handleApproveClick(record)}
+            disabled={record.status === 'draft' || record.status === 'published' || record.status === 'rejected'}
+            title={record.status === 'draft' ? 'Không thể duyệt bài viết nháp' : record.status === 'published' ? 'Bài viết đã duyệt' : record.status === 'rejected' ? 'Bài viết đã bị từ chối' : 'Duyệt bài viết'}
           >
             Duyệt
           </Button>
@@ -135,6 +156,8 @@ const PendingBlogs: React.FC = () => {
             size="small"
             icon={<CloseOutlined />}
             onClick={() => handleRejectClick(record)}
+            disabled={record.status === 'draft' || record.status === 'published' || record.status === 'rejected'}
+            title={record.status === 'draft' ? 'Không thể từ chối bài viết nháp' : record.status === 'published' ? 'Bài viết đã duyệt' : record.status === 'rejected' ? 'Bài viết đã bị từ chối' : 'Từ chối bài viết'}
           >
             Từ chối
           </Button>
@@ -146,14 +169,38 @@ const PendingBlogs: React.FC = () => {
   return (
     <div className="blogs-page">
       <div className="page-header">
-        <h1>Bài viết chờ duyệt</h1>
-        <p className="subtitle">Tổng cộng: {blogs.length} bài viết</p>
+        <h1>Quản lý Bài viết</h1>
+        <p className="subtitle">Tổng cộng: {filteredBlogs.length} bài viết</p>
+      </div>
+
+      <div style={{ marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <Input
+          placeholder="Tìm kiếm theo tiêu đề, tác giả..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{ width: '300px' }}
+          allowClear
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'pending')}
+          style={{
+            padding: '6px 12px',
+            borderRadius: '4px',
+            border: '1px solid #d9d9d9',
+            cursor: 'pointer',
+            fontSize: '14px',
+          }}
+        >
+          <option value="pending">Cần duyệt</option>
+          <option value="ALL">Tất cả</option>
+        </select>
       </div>
 
       <div className="blogs-table-container">
         <Table
           columns={columns}
-          dataSource={blogs}
+          dataSource={filteredBlogs}
           loading={isLoading}
           rowKey="id"
           pagination={{

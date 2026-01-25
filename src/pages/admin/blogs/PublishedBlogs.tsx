@@ -1,6 +1,6 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Table, Button, Space, Tag } from 'antd'
+import { Table, Button, Space, Tag, Input } from 'antd'
 import { EyeOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { blogAPI } from '../../../services/api/blogAPI'
@@ -9,6 +9,7 @@ import './BlogsPage.css'
 
 const PublishedBlogs: React.FC = () => {
   const navigate = useNavigate()
+  const [searchTerm, setSearchTerm] = useState('')
 
   // Fetch published blogs
   const { data: blogsResponse, isLoading } = useQuery({
@@ -17,6 +18,15 @@ const PublishedBlogs: React.FC = () => {
   })
 
   const blogs = blogsResponse?.data || []
+
+  // Filter blogs based on searchTerm
+  const filteredBlogs = blogs.filter(blog => {
+    const matchesSearch = searchTerm === '' || 
+      blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      blog.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      blog.userId.toLowerCase().includes(searchTerm.toLowerCase())
+    return matchesSearch
+  })
 
   const handleViewDetail = (blog: Blog) => {
     navigate(`/admin/blogs/${blog.id}`)
@@ -33,10 +43,10 @@ const PublishedBlogs: React.FC = () => {
     },
     {
       title: 'Tác giả',
-      dataIndex: ['author', 'name'],
+      dataIndex: 'author',
       key: 'author',
       width: 150,
-      render: (text: string) => text || 'N/A',
+      render: (author: string | null | undefined, record: Blog) => author || record.userId || 'N/A',
     },
     {
       title: 'Ngày xuất bản',
@@ -75,13 +85,23 @@ const PublishedBlogs: React.FC = () => {
     <div className="blogs-page">
       <div className="page-header">
         <h1>Bài viết đã xuất bản</h1>
-        <p className="subtitle">Tổng cộng: {blogs.length} bài viết</p>
+        <p className="subtitle">Tổng cộng: {filteredBlogs.length} bài viết</p>
+      </div>
+
+      <div style={{ marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <Input
+          placeholder="Tìm kiếm theo tiêu đề, tác giả..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{ width: '300px' }}
+          allowClear
+        />
       </div>
 
       <div className="blogs-table-container">
         <Table
           columns={columns}
-          dataSource={blogs}
+          dataSource={filteredBlogs}
           loading={isLoading}
           rowKey="id"
           pagination={{

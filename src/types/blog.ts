@@ -9,15 +9,11 @@ export interface Blog {
   thumbnailUrl?: string;
   images: string[];
   status: BlogStatus;
+  author?: string | null;
   rejectionReason?: string | null;
   publishedAt?: string | null;
   createdAt: string;
   updatedAt: string;
-  author?: {
-    id: string;
-    name: string;
-    email?: string;
-  };
 }
 
 export interface BlogFilters {
@@ -46,9 +42,10 @@ export interface PaginationParams {
 }
 
 export interface ApproveParams {
-  note?: string;
+  adminId?: string;
 }
 
 export interface RejectParams {
-  reason: string;
+  adminId?: string;
+  rejectionReason: string;
 }

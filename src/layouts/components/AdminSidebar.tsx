@@ -14,6 +14,9 @@ import {
   AppstoreAddOutlined,
   ScanOutlined,
   RobotOutlined,
+  FileSearchOutlined,
+  FileDoneOutlined,
+  FileExclamationOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 import '../Sidebar.css'
@@ -62,10 +65,35 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
       ],
     },
     {
-      key: '/admin/blog-analytics',
+      key: 'blog-management',
       icon: <BarChartOutlined />,
-      label: 'Thống kê Blog',
-      onClick: () => navigate('/admin/blog-analytics'),
+      label: 'Blog',
+      children: [
+        {
+          key: '/admin/blogs/pending',
+          icon: <FileSearchOutlined />,
+          label: 'Duyệt bài',
+          onClick: () => navigate('/admin/blogs/pending'),
+        },
+        {
+          key: '/admin/blogs/published',
+          icon: <FileDoneOutlined />,
+          label: 'Đã duyệt',
+          onClick: () => navigate('/admin/blogs/published'),
+        },
+        {
+          key: '/admin/blogs/rejected',
+          icon: <FileExclamationOutlined />,
+          label: 'Từ chối',
+          onClick: () => navigate('/admin/blogs/rejected'),
+        },
+        {
+          key: '/admin/blog-analytics',
+          icon: <BarChartOutlined />,
+          label: 'Thống kê Blog',
+          onClick: () => navigate('/admin/blog-analytics'),
+        },
+      ],
     },
     {
       key: '/admin/ocr-analytics',
@@ -134,7 +162,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
         theme="dark"
         mode="inline"
         selectedKeys={[location.pathname]}
-        defaultOpenKeys={['user-management']}
+        defaultOpenKeys={['user-management', 'blog-management']}
         items={menuItems}
       />
     </Sider>

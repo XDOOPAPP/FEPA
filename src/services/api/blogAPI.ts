@@ -44,45 +44,30 @@ export const blogAPI = {
 
 		const response = await axiosInstance.get(API_CONFIG.BLOGS.LIST, { params: queryParams });
 		console.log('📝 Blog List API Response:', response);
-		
-		// Backend returns array directly
-		if (Array.isArray(response)) {
-			return {
-				data: response,
-				total: response.length,
-				page: 1,
-				limit: response.length,
-			};
-		}
-		
-		// If response has data property (wrapped format)
-		if (response && typeof response === 'object' && 'data' in response && Array.isArray(response.data)) {
-			return {
-				data: response.data,
-				total: response.data.length,
-				page: 1,
-				limit: response.data.length,
-			};
-		}
-		
-		// If already in correct format with pagination
-		if (response && typeof response === 'object' && 'data' in response && 'total' in response) {
-			return response as unknown as BlogListResponse;
-		}
-		
-		console.warn('📝 Unexpected blog list response format, returning empty');
+
+		// Normalize response which can be: array, {data: [...], meta: {...}}, or already shaped
+		const payload: any = response ?? {};
+		const data: Blog[] = Array.isArray(payload)
+			? payload
+			: Array.isArray(payload.data)
+				? payload.data
+				: [];
+
+		const meta = payload.meta || {};
+
 		return {
-			data: [],
-			total: 0,
-			page: 1,
-			limit: 10,
+			data,
+			total: meta.total ?? data.length ?? 0,
+			page: meta.page ?? 1,
+			limit: meta.limit ?? data.length ?? 10,
 		};
 	},
 
 	/**
-	 * Get pending blogs
+	 * Get pending blogs awaiting admin approval
 	 */
 	getPendingBlogs: async (params?: PaginationParams): Promise<BlogListResponse> => {
+		// Admin approval queue: blogs in pending status
 		return blogAPI.getBlogs({ ...params, status: 'pending' });
 	},
 
@@ -139,19 +124,43 @@ export const blogAPI = {
 	},
 
 	/**
-	 * Approve a blog
+	 * Approve a blog - transitions from pending to published
 	 */
 	approveBlog: async (id: string, params?: ApproveParams): Promise<BlogActionResponse> => {
-		const response = await axiosInstance.post(API_CONFIG.BLOGS.APPROVE(id), params);
+		// Backend expects { adminId? } in request body
+		const payload = params && params.adminId ? params : {};
+		const response = await axiosInstance.post(API_CONFIG.BLOGS.APPROVE(id), payload);
 		return response as unknown as BlogActionResponse;
 	},
 
 	/**
-	 * Reject a blog
+	 * Reject a blog - transitions from pending to rejected with reason
 	 */
 	rejectBlog: async (id: string, params: RejectParams): Promise<BlogActionResponse> => {
+		// Backend expects { adminId?, rejectionReason } in request body
 		const response = await axiosInstance.post(API_CONFIG.BLOGS.REJECT(id), params);
 		return response as unknown as BlogActionResponse;
+	},
+
+	/**
+	 * Get all blogs for admin review (all statuses)
+	 */
+	getAllBlogsForAdminReview: async (): Promise<BlogListResponse> => {
+		const statuses: BlogStatus[] = ['draft', 'pending', 'published', 'rejected'];
+		const responses = await Promise.all(
+			statuses.map(status => blogAPI.getBlogs({ status }))
+		);
+		
+		const allBlogs = responses.flatMap(r => r.data);
+		// Sort by createdAt descending
+		allBlogs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+		
+		return {
+			data: allBlogs,
+			total: allBlogs.length,
+			page: 1,
+			limit: allBlogs.length,
+		};
 	},
 
 	/**
