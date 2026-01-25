@@ -12,158 +12,104 @@ import budgetAPI from './api/budgetAPI'
 import type { BudgetAdminStats } from './api/budgetAPI'
 import ocrAPI from './api/ocrAPI'
 import type { OcrAdminStats } from './api/ocrAPI'
-// import axiosInstance from './api/axiosInstance' // Uncomment khi cần dùng
+import aiAPI from './api/aiAPI'
+import type { AiAdminStats } from './api/aiAPI'
+import adminApiService from './api/adminApiService'
 import { message } from 'antd'
 
 // ==================== USER SERVICE ====================
 
-/**
- * Hook để fetch danh sách users
- */
-export const useUsers = () => {
+export const useUsers = (filters?: Parameters<typeof adminApiService.getUsers>[0]) => {
   return useQuery({
-    queryKey: ['users'],
+    queryKey: ['users', filters],
     queryFn: async () => {
-      // TODO: Thay localStorage bằng API call
-      // const response = await axiosInstance.get('/users')
-      // return response.data
-
-      const users = localStorage.getItem('users')
-      return users ? JSON.parse(users) : []
+      const response = await adminApiService.getUsers(filters)
+      return response?.data ?? response ?? []
     },
+    keepPreviousData: true,
   })
 }
 
-/**
- * Hook để fetch single user
- */
 export const useUser = (userId: string) => {
   return useQuery({
     queryKey: ['user', userId],
     queryFn: async () => {
-      // TODO: Replace with API call
-      // return await axiosInstance.get(`/users/${userId}`)
+      const response = await adminApiService.getUsers({ search: userId, pageSize: 1 })
+      const payload = response?.data ?? response
+      const list = Array.isArray((payload as any)?.data)
+        ? (payload as any).data
+        : (payload as any)?.users ?? (payload as any)?.items ?? payload
 
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      return users.find((u: any) => u.id === userId)
+      if (Array.isArray(list)) {
+        return list.find((u: any) => u.id === userId || u._id === userId) ?? null
+      }
+
+      return payload ?? null
     },
-    enabled: !!userId, // Only run if userId exists
+    enabled: !!userId,
   })
 }
 
-/**
- * Hook để create/update user
- */
 export const useCreateUser = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (userData: any) => {
-      // TODO: Replace with API call
-      // return await axiosInstance.post('/users', userData)
-
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      const newUser = { ...userData, id: Date.now().toString() }
-      users.push(newUser)
-      localStorage.setItem('users', JSON.stringify(users))
-      return newUser
-    },
+    mutationFn: async (userData: { email: string; fullName: string; password: string }) =>
+      adminApiService.registerAdmin(userData),
     onSuccess: () => {
-      // Invalidate and refetch users list
       queryClient.invalidateQueries({ queryKey: ['users'] })
-      message.success('Thêm người dùng thành công')
+      message.success('Tạo admin thành công')
     },
     onError: (error: any) => {
-      message.error(error.message || 'Có lỗi xảy ra')
+      message.error(error?.message || error?.response?.data?.message || 'Có lỗi xảy ra')
     },
   })
 }
 
-/**
- * Hook để update user
- */
-export const useUpdateUser = () => {
+export const useDeactivateUser = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      // TODO: Replace with API call
-      // return await axiosInstance.put(`/users/${id}`, data)
-
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      const index = users.findIndex((u: any) => u.id === id)
-      if (index !== -1) {
-        users[index] = { ...users[index], ...data }
-        localStorage.setItem('users', JSON.stringify(users))
-      }
-      return users[index]
-    },
-    onSuccess: (_data, variables) => {
+    mutationFn: async (userId: string) => adminApiService.deactivateUser(userId),
+    onSuccess: (_res, userId) => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
-      queryClient.invalidateQueries({ queryKey: ['user', variables.id] })
-      message.success('Cập nhật thành công')
+      queryClient.invalidateQueries({ queryKey: ['user', userId] })
+      message.success('Đã vô hiệu hóa người dùng')
     },
     onError: (error: any) => {
-      message.error(error.message || 'Có lỗi xảy ra')
+      message.error(error?.message || error?.response?.data?.message || 'Có lỗi xảy ra')
     },
   })
 }
 
-/**
- * Hook để delete user
- */
+export const useReactivateUser = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (userId: string) => adminApiService.reactivateUser(userId),
+    onSuccess: (_res, userId) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      queryClient.invalidateQueries({ queryKey: ['user', userId] })
+      message.success('Đã kích hoạt lại người dùng')
+    },
+    onError: (error: any) => {
+      message.error(error?.message || error?.response?.data?.message || 'Có lỗi xảy ra')
+    },
+  })
+}
+
 export const useDeleteUser = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (userId: string) => {
-      // TODO: Replace with API call
-      // return await axiosInstance.delete(`/users/${userId}`)
-
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      const filtered = users.filter((u: any) => u.id !== userId)
-      localStorage.setItem('users', JSON.stringify(filtered))
-      return userId
-    },
-    onSuccess: () => {
+    mutationFn: async (userId: string) => adminApiService.deleteUser(userId),
+    onSuccess: (_res, userId) => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
+      queryClient.invalidateQueries({ queryKey: ['user', userId] })
       message.success('Xóa người dùng thành công')
     },
     onError: (error: any) => {
-      message.error(error.message || 'Có lỗi xảy ra')
-    },
-  })
-}
-
-// ==================== EXAMPLE: Expenses Service ====================
-
-export const useExpenses = (filters?: { userId?: string; categoryId?: string }) => {
-  return useQuery({
-    queryKey: ['expenses', filters],
-    queryFn: async () => {
-      // TODO: Replace with API call
-      // return await axiosInstance.get('/expenses', { params: filters })
-
-      const expenses = JSON.parse(localStorage.getItem('expenses') || '[]')
-      return expenses
-    },
-  })
-}
-
-// ==================== EXAMPLE: Reports Service ====================
-
-export const useReports = (params: { type: string; startDate: string; endDate: string }) => {
-  return useQuery({
-    queryKey: ['reports', params],
-    queryFn: async () => {
-      // TODO: Replace with API call
-      // return await axiosInstance.get('/reports', { params })
-
-      return {
-        totalRevenue: 50000000,
-        totalUsers: 1250,
-        premiumUsers: 150,
-      }
+      message.error(error?.message || error?.response?.data?.message || 'Có lỗi xảy ra')
     },
   })
 }
@@ -448,6 +394,24 @@ export const useGetOcrAdminStats = () => {
     queryFn: async () => {
       const response = await ocrAPI.getAdminStats()
       return response as OcrAdminStats
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 3,
+  })
+}
+
+// ==================== AI SERVICE ====================
+
+/**
+ * Lấy thống kê AI toàn hệ thống (Admin)
+ * GET /api/v1/ai/admin/stats
+ */
+export const useGetAiAdminStats = () => {
+  return useQuery({
+    queryKey: ['ai', 'admin', 'stats'],
+    queryFn: async () => {
+      const response = await aiAPI.getAdminStats()
+      return response as AiAdminStats
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
     retry: 3,

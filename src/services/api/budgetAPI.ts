@@ -40,7 +40,7 @@ const budgetAPI = {
    */
   getAdminStats: async () => {
     const response = await axiosInstance.get<BudgetStatsResponse>(
-      `${API_CONFIG.BUDGETS.LIST}/admin/stats`
+      '/budgets/admin/stats' // Fixed: direct path
     )
     
     // Normalize response

@@ -1,0 +1,215 @@
+name: FEPA Admin - CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+      - develop
+  pull_request:
+    branches:
+      - main
+      - staging
+
+env:
+  NODE_VERSION: "20.x"
+
+jobs:
+  # ============================================================================
+  # Build & Test Job
+  # ============================================================================
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript type check
+        run: npx tsc --noEmit
+
+      - name: Run linter (if configured)
+        run: npm run lint || echo "No lint script found"
+        continue-on-error: true
+
+      - name: Run tests (if configured)
+        run: npm test || echo "No test script found"
+        continue-on-error: true
+
+      - name: Build project
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_SOCKET_URL: ${{ secrets.VITE_SOCKET_URL }}
+          VITE_APP_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  # ============================================================================
+  # Deploy to Staging (when push to staging branch)
+  # ============================================================================
+  deploy-staging:
+    name: Deploy to Staging
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging' && github.event_name == 'push'
+
+    environment:
+      name: staging
+      url: https://staging-admin.fepa.com
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Deploy to Staging Server via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          source: "dist/*"
+          target: "/var/www/fepa-admin-staging"
+          strip_components: 1
+
+      - name: Restart Nginx (Staging)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            sudo systemctl reload nginx
+            echo "Staging deployment completed"
+
+      - name: Send Slack notification
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: "Staging deployment ${{ job.status }}"
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  # ============================================================================
+  # Deploy to Production (when push to main branch)
+  # ============================================================================
+  deploy-production:
+    name: Deploy to Production
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    environment:
+      name: production
+      url: https://admin.fepa.com
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Create backup of current deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            BACKUP_DIR="/backup/fepa-admin-$(date +%Y%m%d-%H%M%S)"
+            mkdir -p $BACKUP_DIR
+            cp -r /var/www/fepa-admin/* $BACKUP_DIR/
+            echo "Backup created at $BACKUP_DIR"
+
+      - name: Deploy to Production Server via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          source: "dist/*"
+          target: "/var/www/fepa-admin"
+          strip_components: 1
+
+      - name: Restart Nginx (Production)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            sudo systemctl reload nginx
+            echo "Production deployment completed"
+
+      - name: Run health check
+        run: |
+          sleep 10
+          curl -f https://admin.fepa.com || exit 1
+
+      - name: Send Slack notification
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: "Production deployment ${{ job.status }}"
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Create GitHub Release
+        if: success()
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
+          body: |
+            Automated production deployment
+            - Build: ${{ github.run_number }}
+            - Commit: ${{ github.sha }}
+            - Date: ${{ github.event.head_commit.timestamp }}
+          draft: false
+          prerelease: false
+
+  # ============================================================================
+  # Security Scan (Optional)
+  # ============================================================================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}

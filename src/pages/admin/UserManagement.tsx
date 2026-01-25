@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { Card, Table, Button, Space, Modal, Form, Input, Select, Tag, message, Popconfirm, Typography, Checkbox } from 'antd'
-import { UserOutlined, PlusOutlined, EditOutlined, DeleteOutlined, LockOutlined, UnlockOutlined, KeyOutlined } from '@ant-design/icons'
+import { Card, Table, Button, Space, Modal, Form, Input, Select, Tag, message, Popconfirm, Typography, Checkbox, Dropdown } from 'antd'
+import { UserOutlined, PlusOutlined, EditOutlined, DeleteOutlined, LockOutlined, UnlockOutlined, KeyOutlined, MoreOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { useBulkActions } from '../../hooks/useBulkActions'
 import { BulkActionsBar, commonBulkActions } from '../../components/BulkActionsBar'
 import { exportToCSV } from '../../utils/exportUtils'
 import { SkeletonTable } from '../../components/SkeletonLoader'
+import userAPI from '../../services/api/userAPI'
 
 const { Title } = Typography
 
@@ -15,7 +16,6 @@ interface User {
   fullName: string
   role: 'admin' | 'user'
   status: 'active' | 'locked'
-  phone?: string
   createdAt: string
   lastLogin: string
 }
@@ -26,6 +26,8 @@ const UserManagement: React.FC = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(true)
+  const [filters, setFilters] = useState<{ search?: string; status: 'ALL' | 'ACTIVE' | 'INACTIVE'; role: 'ALL' | 'ADMIN' | 'USER'; verified: 'ALL' | 'VERIFIED' | 'UNVERIFIED'; page: number; pageSize: number }>({ status: 'ALL', role: 'ALL', verified: 'ALL', page: 1, pageSize: 10 })
+  const [total, setTotal] = useState(0)
 
   // Bulk actions
   const {
@@ -49,8 +51,26 @@ const UserManagement: React.FC = () => {
   const loadUsers = async () => {
     setLoading(true)
     try {
-      const usersData = await import('../../services/api/userAPI').then(m => m.default.getAll())
-      setUsers(usersData || [])
+      const res = await userAPI.getUsers(filters)
+      const payload = (res as any) || {}
+      const list = Array.isArray(payload.data) ? payload.data : payload.users || payload.items || []
+
+      const mapped = list.map((u: any) => {
+        const roleRaw = u.role || 'USER'
+        const roleNorm = roleRaw.toUpperCase()
+        return {
+          id: u.id || u._id,
+          email: u.email,
+          fullName: u.fullName || u.name,
+          role: roleNorm,
+          status: u.isActive ? 'active' : 'locked',
+          createdAt: u.createdAt,
+          lastLogin: u.lastLogin || u.createdAt,
+        }
+      })
+
+      setUsers(mapped)
+      setTotal(payload.total || mapped.length)
     } catch (err) {
       console.error('Failed to load users from API:', err)
       setUsers([])
@@ -76,14 +96,29 @@ const UserManagement: React.FC = () => {
     setIsModalOpen(true)
   }
 
+  const handleSearch = (value: string) => {
+    setFilters(prev => ({ ...prev, search: value, page: 1 }))
+    loadUsers()
+  }
+
+  const handleFilterChange = (changed: Partial<typeof filters>) => {
+    setFilters(prev => ({ ...prev, ...changed, page: 1 }))
+    loadUsers()
+  }
+
+  const handleTableChange = (pagination: any) => {
+    const { current, pageSize } = pagination
+    setFilters(prev => ({ ...prev, page: current, pageSize }))
+    loadUsers()
+  }
+
   const handleDelete = (id: string) => {
     Modal.confirm({
       title: 'Xác nhận xóa',
       content: 'Bạn có chắc muốn xóa người dùng này?',
       onOk: async () => {
         try {
-          const userAPI = (await import('../../services/api/userAPI')).default
-          await userAPI.delete(id)
+          await userAPI.deleteUser(id)
           await loadUsers()
           message.success('Xóa người dùng thành công')
         } catch (err) {
@@ -97,11 +132,14 @@ const UserManagement: React.FC = () => {
   const handleToggleStatus = (record: User) => {
     ;(async () => {
       try {
-        const userAPI = (await import('../../services/api/userAPI')).default
         const newStatus = record.status === 'active' ? 'locked' : 'active'
-        await userAPI.update(record.id, { ...record, status: newStatus })
+        if (newStatus === 'locked') {
+          await userAPI.deactivateUser(record.id)
+        } else {
+          await userAPI.reactivateUser(record.id)
+        }
         await loadUsers()
-        message.success(`${record.status === 'active' ? 'Khóa' : 'Mở'} tài khoản thành công`)
+        message.success(newStatus === 'locked' ? 'Đã khóa người dùng' : 'Đã mở khóa người dùng')
       } catch (err) {
         console.error('Failed to toggle status:', err)
         message.error('Thao tác thất bại')
@@ -114,35 +152,15 @@ const UserManagement: React.FC = () => {
       title: 'Xác nhận reset mật khẩu',
       content: `Bạn có chắc muốn reset mật khẩu cho ${record.fullName}?`,
       onOk: () => {
-        // Call backend reset endpoint if available
-        ;(async () => {
-          try {
-            const userAPI = (await import('../../services/api/userAPI')).default
-            await userAPI.update(record.id, { }) // backend should trigger reset based on route; adapt if specific endpoint exists
-            message.success('Yêu cầu reset mật khẩu đã gửi')
-          } catch (err) {
-            console.error('Reset password failed:', err)
-            message.error('Reset mật khẩu thất bại')
-          }
-        })()
+        message.info('Tính năng reset mật khẩu sẽ được bổ sung sau')
       }
     })
   }
 
   const handleSubmit = async () => {
     try {
-      const values = await form.validateFields()
-
-      const userAPI = (await import('../../services/api/userAPI')).default
-
-      if (editingUser) {
-        await userAPI.update(editingUser.id, values as any)
-        message.success('Cập nhật người dùng thành công')
-      } else {
-        await userAPI.create(values as any)
-        message.success('Thêm người dùng thành công')
-      }
-
+      await form.validateFields()
+      message.info('Tính năng tạo/cập nhật người dùng sẽ được bổ sung sau')
       setIsModalOpen(false)
       form.resetFields()
       await loadUsers()
@@ -161,9 +179,8 @@ const UserManagement: React.FC = () => {
       content: `Bạn có chắc muốn xóa ${selectedIds.size} người dùng đã chọn?`,
       onOk: async () => {
         try {
-          const userAPI = (await import('../../services/api/userAPI')).default
           const ids = Array.from(selectedIds)
-          await Promise.all(ids.map(id => userAPI.delete(id)))
+          await Promise.all(ids.map(id => userAPI.deleteUser(id)))
           deselectAll()
           await loadUsers()
           message.success(`Đã xóa ${ids.length} người dùng`)
@@ -179,7 +196,6 @@ const UserManagement: React.FC = () => {
     const dataToExport = selectedItems.map(user => ({
       Email: user.email,
       'Họ tên': user.fullName,
-      'Số điện thoại': user.phone || '',
       'Vai trò': user.role === 'ADMIN' ? 'Admin' : 'User',
       'Trạng thái': user.status === 'active' ? 'Hoạt động' : 'Đã khóa',
       'Ngày tạo': dayjs(user.createdAt).format('DD/MM/YYYY HH:mm'),
@@ -220,22 +236,22 @@ const UserManagement: React.FC = () => {
       sorter: (a: User, b: User) => a.fullName.localeCompare(b.fullName)
     },
     {
-      title: 'Số điện thoại',
-      dataIndex: 'phone',
-      key: 'phone'
-    },
-    {
       title: 'Vai trò',
       dataIndex: 'role',
       key: 'role',
-      render: (role: string) => (
-        <Tag color={role === 'ADMIN' ? 'red' : 'blue'}>
-          {role === 'ADMIN' ? 'Admin' : 'User'}
-        </Tag>
-      ),
+      render: (role: string) => {
+        const isSuper = role === 'SUPER_ADMIN'
+        const isAdmin = role === 'ADMIN'
+        return (
+          <Tag color={isSuper ? 'gold' : isAdmin ? 'red' : 'blue'}>
+            {isSuper ? 'Super Admin' : isAdmin ? 'Admin' : 'User'}
+          </Tag>
+        )
+      },
       filters: [
-        { text: 'Admin', value: 'admin' },
-        { text: 'User', value: 'user' }
+        { text: 'Super Admin', value: 'SUPER_ADMIN' },
+        { text: 'Admin', value: 'ADMIN' },
+        { text: 'User', value: 'USER' },
       ],
       onFilter: (value: any, record: User) => record.role === value
     },
@@ -271,62 +287,59 @@ const UserManagement: React.FC = () => {
     {
       title: 'Thao tác',
       key: 'action',
-      fixed: 'right' as const,
-      width: 280,
-      render: (_: any, record: User) => (
-        <Space size="small" wrap style={{ 
-          padding: '4px', 
-          border: '1px solid #f0f0f0', 
-          borderRadius: '6px',
-          background: '#fafafa',
-          display: 'inline-flex',
-          gap: '4px'
-        }}>
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            size="small"
-            style={{ color: '#1890ff' }}
+      width: 180,
+      render: (_: any, record: User) => {
+        const menuItems = [
+          {
+            key: 'edit',
+            label: 'Sửa',
+            icon: <EditOutlined />,
+            onClick: () => handleEdit(record),
+          },
+          {
+            key: 'toggle',
+            label: record.status === 'active' ? 'Khóa' : 'Mở',
+            icon: record.status === 'active' ? <LockOutlined /> : <UnlockOutlined />,
+            onClick: () => handleToggleStatus(record),
+          },
+          {
+            key: 'reset',
+            label: 'Reset MK',
+            icon: <KeyOutlined />,
+            onClick: () => handleResetPassword(record),
+          },
+          {
+            key: 'delete',
+            label: 'Xóa',
+            icon: <DeleteOutlined />,
+            danger: true,
+            onClick: () => handleDelete(record.id),
+          },
+        ]
+
+        return (
+          <Dropdown
+            menu={{
+              items: menuItems.map((item) => ({
+                key: item.key,
+                label: (
+                  <Space size="small" onClick={item.onClick}>
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Space>
+                ),
+                danger: item.danger,
+              })),
+            }}
+            trigger={[ 'click' ]}
+            placement="bottomRight"
           >
-            Sửa
-          </Button>
-          <Button
-            type="text"
-            icon={record.status === 'active' ? <LockOutlined /> : <UnlockOutlined />}
-            onClick={() => handleToggleStatus(record)}
-            size="small"
-            style={{ color: '#faad14' }}
-          >
-            {record.status === 'active' ? 'Khóa' : 'Mở'}
-          </Button>
-          <Button
-            type="text"
-            icon={<KeyOutlined />}
-            onClick={() => handleResetPassword(record)}
-            size="small"
-            style={{ color: '#52c41a' }}
-          >
-            Reset MK
-          </Button>
-          <Popconfirm
-            title="Xác nhận xóa"
-            description="Bạn có chắc muốn xóa người dùng này?"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Xóa"
-            cancelText="Hủy"
-          >
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-              size="small"
-            >
-              Xóa
+            <Button type="text" icon={<MoreOutlined />}>
+              Thao tác
             </Button>
-          </Popconfirm>
-        </Space>
-      )
+          </Dropdown>
+        )
+      }
     }
   ]
 
@@ -335,25 +348,64 @@ const UserManagement: React.FC = () => {
       <Card
         title={<Title level={3}><UserOutlined /> Quản lý người dùng</Title>}
         extra={
-          <Space>
-            {/* demo clear button removed - webadmin now uses real API */}
+          <Space wrap>
+            <Input.Search
+              allowClear
+              placeholder="Tìm theo email/họ tên"
+              onSearch={handleSearch}
+              style={{ width: 260 }}
+            />
+            <Select
+              value={filters.status}
+              onChange={(v) => handleFilterChange({ status: v as any })}
+              style={{ width: 140 }}
+              options={[
+                { label: 'Tất cả', value: 'ALL' },
+                { label: 'Hoạt động', value: 'ACTIVE' },
+                { label: 'Đã khóa', value: 'INACTIVE' },
+              ]}
+            />
+            <Select
+              value={filters.role}
+              onChange={(v) => handleFilterChange({ role: v as any })}
+              style={{ width: 140 }}
+              options={[
+                { label: 'Tất cả', value: 'ALL' },
+                { label: 'User', value: 'USER' },
+                { label: 'Admin', value: 'ADMIN' },
+              ]}
+            />
+            <Select
+              value={filters.verified}
+              onChange={(v) => handleFilterChange({ verified: v as any })}
+              style={{ width: 160 }}
+              options={[
+                { label: 'Tất cả', value: 'ALL' },
+                { label: 'Đã xác thực', value: 'VERIFIED' },
+                { label: 'Chưa xác thực', value: 'UNVERIFIED' },
+              ]}
+            />
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-              Thêm người dùng
+              Thêm
             </Button>
           </Space>
         }
       >
         <SkeletonTable rows={5} loading={loading}>
           <Table
-            columns={columns}
             dataSource={users}
+            columns={columns}
             rowKey="id"
             pagination={{
-              pageSize: 10,
+              current: filters.page,
+              pageSize: filters.pageSize,
+              total: total,
               showSizeChanger: true,
-              showTotal: (total) => `Tổng ${total} người dùng`
+              showTotal: (t) => `Tổng ${t} người dùng`,
             }}
-            scroll={{ x: 1200 }}
+            onChange={handleTableChange}
+            style={{ width: '100%' }}
+            tableLayout="auto"
           />
         </SkeletonTable>
       </Card>
@@ -402,13 +454,6 @@ const UserManagement: React.FC = () => {
             rules={[{ required: true, message: 'Vui lòng nhập họ tên' }]}
           >
             <Input placeholder="Nguyễn Văn A" />
-          </Form.Item>
-
-          <Form.Item
-            label="Số điện thoại"
-            name="phone"
-          >
-            <Input placeholder="0123456789" />
           </Form.Item>
 
           <Form.Item

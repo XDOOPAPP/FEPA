@@ -4,7 +4,6 @@
  */
 
 import axiosInstance from './axiosInstance'
-import { API_CONFIG } from '../../config/api.config'
 
 // ========== Types ==========
 export interface RegisterAdminRequest {
@@ -44,11 +43,7 @@ export interface GetAllAdminsResponse {
  */
 export const registerAdmin = async (data: RegisterAdminRequest): Promise<RegisterAdminResponse> => {
   try {
-    const response = await axiosInstance.post<RegisterAdminResponse>(
-      `${API_CONFIG.BASE_URL}/auth/register-admin`,
-      data
-    )
-    return response.data
+    return await axiosInstance.post<RegisterAdminResponse>('/auth/register-admin', data)
   } catch (error: any) {
     throw new Error(error.response?.data?.message || 'Failed to register admin')
   }
@@ -60,10 +55,7 @@ export const registerAdmin = async (data: RegisterAdminRequest): Promise<Registe
  */
 export const getAllAdmins = async (): Promise<GetAllAdminsResponse> => {
   try {
-    const response = await axiosInstance.get<GetAllAdminsResponse>(
-      `${API_CONFIG.BASE_URL}/auth/all-admin`
-    )
-    return response.data
+    return await axiosInstance.get<GetAllAdminsResponse>('/auth/all-admin')
   } catch (error: any) {
     throw new Error(error.response?.data?.message || 'Failed to fetch admins')
   }

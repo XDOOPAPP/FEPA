@@ -70,6 +70,38 @@ export interface StatsResponse {
   data?: SubscriptionStatsMap
 }
 
+export interface RevenueOverTimeParams {
+  period?: 'daily' | 'weekly' | 'monthly'
+  days?: number
+}
+
+export interface RevenuePoint {
+  date: string
+  revenue: number
+}
+
+export interface RevenueOverTimeResponse {
+  success?: boolean
+  data?: RevenuePoint[]
+  period?: string
+}
+
+export interface RevenueByPlanItem {
+  plan: string
+  revenue: number
+  count?: number
+}
+
+export interface RevenueTotalsResponse {
+  success?: boolean
+  data?: {
+    totalRevenue: number
+    activeSubscriptions?: number
+    cancelledSubscriptions?: number
+    totalSubscriptions?: number
+  }
+}
+
 export interface HealthCheckResponse {
   success: boolean
   message: string
@@ -245,6 +277,41 @@ const subscriptionAPI = {
       { params: { feature } }
     )
     return response.data.data
+  },
+
+  /**
+   * Thống kê doanh thu theo thời gian
+   * GET /subscriptions/stats/revenue-over-time?period=daily&days=30
+   */
+  getRevenueOverTime: async (params: RevenueOverTimeParams = { period: 'daily', days: 30 }) => {
+    const response = await axiosInstance.get<RevenueOverTimeResponse>(
+      API_CONFIG.SUBSCRIPTIONS.REVENUE_OVER_TIME,
+      { params }
+    )
+    return response.data || response
+  },
+
+  /**
+   * Tổng hợp doanh thu
+   * GET /subscriptions/stats/total-revenue
+   */
+  getRevenueTotals: async () => {
+    const response = await axiosInstance.get<RevenueTotalsResponse>(
+      API_CONFIG.SUBSCRIPTIONS.REVENUE_TOTAL
+    )
+    return response.data || response
+  },
+
+  /**
+   * Doanh thu theo gói
+   * GET /subscriptions/stats/revenue-by-plan
+   */
+  getRevenueByPlan: async () => {
+    const response = await axiosInstance.get<RevenueByPlanItem[] | { data: RevenueByPlanItem[] }>(
+      API_CONFIG.SUBSCRIPTIONS.REVENUE_BY_PLAN
+    )
+    const payload: any = response.data || response
+    return Array.isArray(payload) ? payload : payload.data
   },
 }
 

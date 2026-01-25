@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Quick Test</title>
+</head>
+<body>
+    <h1>Quick API Test</h1>
+    <button onclick="testLogin()">Test Login</button>
+    <button onclick="testStats()">Test Stats (Need Token)</button>
+    <button onclick="clearStorage()">Clear Storage</button>
+    <pre id="output"></pre>
+
+    <script>
+        const API_BASE = 'http://76.13.21.84:3000/api/v1';
+        const log = (msg) => {
+            document.getElementById('output').textContent += msg + '\n';
+            console.log(msg);
+        };
+
+        async function testLogin() {
+            document.getElementById('output').textContent = '';
+            log('Testing login...');
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@gmail.com',
+                        password: 'Admin@123'
+                    })
+                });
+
+                log(`Status: ${response.status}`);
+                const data = await response.json();
+                log('Response: ' + JSON.stringify(data, null, 2));
+
+                if (data.accessToken || data.data?.accessToken) {
+                    const token = data.accessToken || data.data.accessToken;
+                    localStorage.setItem('accessToken', token);
+                    log('✅ Token saved!');
+                    
+                    // Try to decode
+                    const parts = token.split('.');
+                    const payload = JSON.parse(atob(parts[1]));
+                    log('Token payload: ' + JSON.stringify(payload, null, 2));
+                }
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+            }
+        }
+
+        async function testStats() {
+            document.getElementById('output').textContent = '';
+            const token = localStorage.getItem('accessToken');
+            
+            if (!token) {
+                log('❌ No token! Login first.');
+                return;
+            }
+
+            log('Testing stats with token...');
+            log('Token: ' + token.substring(0, 30) + '...');
+
+            // Decode token to get userId
+            const parts = token.split('.');
+            const payload = JSON.parse(atob(parts[1]));
+            const userId = payload.userId || payload.sub || payload.id;
+            log('User ID: ' + userId);
+
+            try {
+                const response = await fetch(`${API_BASE}/subscriptions/admin/stats`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'x-user-id': userId || '',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                log(`Status: ${response.status}`);
+                const data = await response.json();
+                log('Response: ' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+            }
+        }
+
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            document.getElementById('output').textContent = 'Storage cleared!\n';
+        }
+    </script>
+</body>
+</html>

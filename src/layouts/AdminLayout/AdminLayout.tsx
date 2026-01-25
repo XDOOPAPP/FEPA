@@ -1,7 +1,7 @@
 import React from 'react'
 import { Layout } from 'antd'
 import AdminHeader from '../AdminHeader'
-import AdminSidebar from '../AdminSidebar'
+import AdminSidebar from '../components/AdminSidebar'
 import Footer from '../Footer'
 import './AdminLayout.css'
 

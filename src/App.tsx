@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ConfigProvider, App as AntdApp } from 'antd'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { lazy, Suspense, useEffect } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { queryClient } from './services/queryClient'
 import AdminRoute from './components/AdminRoute'
@@ -11,16 +12,28 @@ import ForgotPassword from './pages/auth/ForgotPassword'
 import ProfilePage from './pages/profile/ProfilePage'
 import SettingsPage from './pages/settings/SettingsPage'
 import ClearStorage from './pages/ClearStorage'
-// Admin pages
-import AdminDashboard from './pages/admin/AdminDashboard'
-import AdminSubscription from './pages/admin/AdminSubscription'
-import AdminManagement from './pages/admin/AdminManagement'
-import AdsManagement from './pages/admin/AdsManagement'
-import PartnerPortal from './pages/admin/PartnerPortal'
-import NotificationsPage from './pages/admin/notifications/NotificationsPage'
-import { PendingBlogs, PublishedBlogs, RejectedBlogs, BlogDetail } from './pages/admin/blogs'
-import { useEffect } from 'react'
+import { LoadingOverlay } from './components/LoadingOverlay'
 import { initializeSocket, disconnectSocket } from './services/socket'
+
+// Lazy-loaded admin pages to reduce initial bundle size
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
+const AdminSubscription = lazy(() => import('./pages/admin/AdminSubscription'))
+const AdminManagement = lazy(() => import('./pages/admin/AdminManagement'))
+const AdsManagement = lazy(() => import('./pages/admin/AdsManagement'))
+const PartnerPortal = lazy(() => import('./pages/admin/PartnerPortal'))
+const NotificationsPage = lazy(() => import('./pages/admin/notifications/NotificationsPage'))
+const UserManagement = lazy(() => import('./pages/admin/UserManagement'))
+const UserStatistics = lazy(() => import('./pages/admin/UserStatistics'))
+const BlogAnalytics = lazy(() => import('./pages/admin/BlogAnalytics'))
+const RevenueDashboard = lazy(() => import('./pages/admin/RevenueDashboard'))
+const PaymentManagement = lazy(() => import('./pages/admin/PaymentManagement'))
+const ExpenseCategories = lazy(() => import('./pages/admin/ExpenseCategories'))
+const OcrAnalytics = lazy(() => import('./pages/admin/OcrAnalytics'))
+const AiAnalytics = lazy(() => import('./pages/admin/AiAnalytics'))
+const PendingBlogs = lazy(() => import('./pages/admin/blogs').then(m => ({ default: m.PendingBlogs })))
+const PublishedBlogs = lazy(() => import('./pages/admin/blogs').then(m => ({ default: m.PublishedBlogs })))
+const RejectedBlogs = lazy(() => import('./pages/admin/blogs').then(m => ({ default: m.RejectedBlogs })))
+const BlogDetail = lazy(() => import('./pages/admin/blogs').then(m => ({ default: m.BlogDetail })))
 
 const themeConfig = {
   token: {
@@ -74,6 +87,7 @@ function App() {
         <AuthProvider>
           <SocketInitializer />
           <Router>
+          <Suspense fallback={<LoadingOverlay fullscreen loading tip="Đang tải trang..." />}>
           <Routes>
             {/* Auth routes */}
             <Route path="/login" element={<LoginPage />} />
@@ -150,6 +164,93 @@ function App() {
             
             {/* Core management routes removed */}
             
+              <Route 
+                path="/admin/users" 
+                element={
+                  <AdminRoute>
+                    <AdminLayout>
+                      <UserManagement />
+                    </AdminLayout>
+                  </AdminRoute>
+                } 
+              />
+              <Route 
+                path="/admin/user-stats" 
+                element={
+                  <AdminRoute>
+                    <AdminLayout>
+                      <UserStatistics />
+                    </AdminLayout>
+                  </AdminRoute>
+                } 
+              />
+
+              <Route 
+                path="/admin/blog-analytics" 
+                element={
+                  <AdminRoute>
+                    <AdminLayout>
+                      <BlogAnalytics />
+                    </AdminLayout>
+                  </AdminRoute>
+                } 
+              />
+
+              <Route 
+                path="/admin/revenue" 
+                element={
+                  <AdminRoute>
+                    <AdminLayout>
+                      <RevenueDashboard />
+                    </AdminLayout>
+                  </AdminRoute>
+                } 
+              />
+
+              <Route 
+                path="/admin/ocr-analytics" 
+                element={
+                  <AdminRoute>
+                    <AdminLayout>
+                      <OcrAnalytics />
+                    </AdminLayout>
+                  </AdminRoute>
+                } 
+              />
+
+              <Route 
+                path="/admin/ai-analytics" 
+                element={
+                  <AdminRoute>
+                    <AdminLayout>
+                      <AiAnalytics />
+                    </AdminLayout>
+                  </AdminRoute>
+                } 
+              />
+
+              <Route 
+                path="/admin/payments" 
+                element={
+                  <AdminRoute>
+                    <AdminLayout>
+                      <PaymentManagement />
+                    </AdminLayout>
+                  </AdminRoute>
+                } 
+              />
+
+              <Route 
+                path="/admin/expense-categories" 
+                element={
+                  <AdminRoute>
+                    <AdminLayout>
+                      <ExpenseCategories />
+                    </AdminLayout>
+                  </AdminRoute>
+                } 
+              />
+            
             <Route 
               path="/admin/admins" 
               element={
@@ -218,6 +319,7 @@ function App() {
             
             <Route path="/" element={<RootRedirect />} />
           </Routes>
+          </Suspense>
         </Router>
       </AuthProvider>
       </AntdApp>

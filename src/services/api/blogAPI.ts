@@ -18,6 +18,18 @@ interface GetBlogsParams extends PaginationParams {
 	dateTo?: string;
 }
 
+export interface BlogStatusStats {
+	draft?: number;
+	pending?: number;
+	published?: number;
+	rejected?: number;
+}
+
+export interface BlogMonthlyStat {
+	month: number;
+	count: number;
+}
+
 export const blogAPI = {
 	/**
 	 * Get blogs with filters. Backend now ignores pagination; only status (and optional filters) are needed.
@@ -86,6 +98,24 @@ export const blogAPI = {
 	 */
 	getRejectedBlogs: async (params?: PaginationParams): Promise<BlogListResponse> => {
 		return blogAPI.getBlogs({ ...params, status: 'rejected' });
+	},
+
+	/**
+	 * Get blog status distribution
+	 */
+	getStatusStats: async (): Promise<BlogStatusStats> => {
+		const response = await axiosInstance.get(API_CONFIG.BLOGS.STATS_STATUS);
+		const payload: any = response.data || response;
+		return payload?.data || payload || {};
+	},
+
+	/**
+	 * Get monthly blog counts for a year
+	 */
+	getMonthlyStats: async (year: number): Promise<BlogMonthlyStat[]> => {
+		const response = await axiosInstance.get(API_CONFIG.BLOGS.STATS_MONTHLY(year));
+		const payload: any = response.data || response;
+		return payload?.data || payload || [];
 	},
 
 	/**

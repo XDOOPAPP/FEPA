@@ -1,41 +1,89 @@
-import axiosInstance from './axiosInstance'
-import { API_CONFIG } from '../../config/api.config'
+/**
+ * User Management API
+ * CRUD và thao tác trạng thái người dùng
+ */
 
-export interface UserDTO {
+import axiosInstance from './axiosInstance'
+
+// ========== Types ==========
+export type UserRole = 'ADMIN' | 'USER' | 'SUPER_ADMIN'
+
+export interface User {
   id: string
   email: string
   fullName: string
-  role: string
-  status: string
-  phone?: string
-  createdAt?: string
-  lastLogin?: string
+  role: UserRole
+  isVerified: boolean
+  isActive: boolean
+  createdAt: string
 }
 
-const userAPI = {
-  getAll: async (): Promise<UserDTO[]> => {
-    const response = await axiosInstance.get('/users')
-    return response.data
-  },
+export interface UserFilters {
+  search?: string
+  status?: 'ALL' | 'ACTIVE' | 'INACTIVE'
+  role?: 'ALL' | 'ADMIN' | 'USER' | 'SUPER_ADMIN'
+  verified?: 'ALL' | 'VERIFIED' | 'UNVERIFIED'
+  page?: number
+  pageSize?: number
+}
 
-  getById: async (id: string): Promise<UserDTO> => {
-    const response = await axiosInstance.get(`/users/${id}`)
-    return response.data
-  },
+export interface PaginatedUsersResponse {
+  success: boolean
+  data: User[]
+  total: number
+  page: number
+  pageSize: number
+}
 
-  create: async (data: Partial<UserDTO>): Promise<UserDTO> => {
-    const response = await axiosInstance.post('/users', data)
-    return response.data
-  },
+export interface SimpleResponse {
+  success: boolean
+  message?: string
+}
 
-  update: async (id: string, data: Partial<UserDTO>): Promise<UserDTO> => {
-    const response = await axiosInstance.put(`/users/${id}`, data)
-    return response.data
-  },
+// ========== API Functions ==========
 
-  delete: async (id: string): Promise<void> => {
-    await axiosInstance.delete(`/users/${id}`)
-  },
+/**
+ * GET /auth/users
+ */
+export const getUsers = async (filters?: UserFilters): Promise<PaginatedUsersResponse> => {
+  const params: Record<string, string | number> = {}
+  if (filters?.search) params.search = filters.search
+  if (filters?.status && filters.status !== 'ALL') params.status = filters.status
+  if (filters?.role && filters.role !== 'ALL') params.role = filters.role
+  if (filters?.verified && filters.verified !== 'ALL') params.verified = filters.verified
+  if (filters?.page) params.page = filters.page
+  if (filters?.pageSize) params.pageSize = filters.pageSize
+
+  // axiosInstance đã unwrap response.data, nên trả thẳng payload
+  return await axiosInstance.get<PaginatedUsersResponse>('/auth/users', { params })
+}
+
+/**
+ * PATCH /auth/users/:userId/deactivate
+ */
+export const deactivateUser = async (userId: string): Promise<SimpleResponse> => {
+  return await axiosInstance.patch<SimpleResponse>(`/auth/users/${userId}/deactivate`)
+}
+
+/**
+ * PATCH /auth/users/:userId/reactivate
+ */
+export const reactivateUser = async (userId: string): Promise<SimpleResponse> => {
+  return await axiosInstance.patch<SimpleResponse>(`/auth/users/${userId}/reactivate`)
+}
+
+/**
+ * DELETE /auth/users/:userId
+ */
+export const deleteUser = async (userId: string): Promise<SimpleResponse> => {
+  return await axiosInstance.delete<SimpleResponse>(`/auth/users/${userId}`)
+}
+
+export const userAPI = {
+  getUsers,
+  deactivateUser,
+  reactivateUser,
+  deleteUser,
 }
 
 export default userAPI

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, Row, Col, Statistic, Tag, Space, Typography, List, Avatar, Spin } from 'antd'
 import {
   UserOutlined,
@@ -7,26 +8,30 @@ import {
   BellOutlined,
   CheckCircleOutlined,
   ShoppingOutlined,
-  WalletOutlined,
   LoadingOutlined,
   PieChartOutlined,
-  BarChartOutlined,
   CameraOutlined,
-  ScanOutlined
+  ScanOutlined,
+  RobotOutlined
 } from '@ant-design/icons'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import dayjs from 'dayjs'
 import subscriptionAPI from '../../services/api/subscriptionAPI'
-import { useGetExpenseAdminStats, useGetBudgetAdminStats, useGetOcrAdminStats } from '../../services/queries'
+import { useGetExpenseAdminStats, useGetBudgetAdminStats, useGetOcrAdminStats, useGetAiAdminStats } from '../../services/queries'
+import blogAPI from '../../services/api/blogAPI'
 
 const { Title, Text } = Typography
 
 const AdminDashboard: React.FC = () => {
+  const navigate = useNavigate()
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalRevenue: 0,
     activeUsers: 0
   })
+  const [blogStats, setBlogStats] = useState<{ draft?: number; pending?: number; published?: number; rejected?: number }>({})
+  const [revenueTotals, setRevenueTotals] = useState<{ totalRevenue: number; activeSubscriptions?: number; totalSubscriptions?: number; cancelledSubscriptions?: number }>({ totalRevenue: 0 })
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false)
   const [recentActivities, setRecentActivities] = useState<any[]>([])
   const [monthlyData, setMonthlyData] = useState<any[]>([])
 
@@ -38,10 +43,14 @@ const AdminDashboard: React.FC = () => {
   
   // Fetch OCR stats
   const { data: ocrStats, isLoading: isLoadingOcrStats } = useGetOcrAdminStats()
+  
+  // Fetch AI stats
+  const { data: aiStats, isLoading: isLoadingAiStats } = useGetAiAdminStats()
 
   useEffect(() => {
     loadDashboardData()
     initializeMockData()
+    loadAnalytics()
   }, [])
 
   const initializeMockData = () => {
@@ -97,18 +106,21 @@ const AdminDashboard: React.FC = () => {
       const allUsers = JSON.parse(localStorage.getItem('all_users') || '[]')
       const activeUsers = allUsers.filter((u: any) => u.status === 'active').length
 
-      // Calculate revenue (simulated)
-      let totalRevenue = 1500000
+      // Calculate revenue (default fallback value)
+      let totalRevenue = 0
 
-      // Fetch real subscription stats
+      // Fetch real subscription stats from backend
       try {
-        const subStats = await subscriptionAPI.getStats()
-        if (subStats?.data) {
-          totalRevenue = subStats.data.totalRevenue || totalRevenue
-          // We can also use subStats.data.activeSubscriptions if available
+        const response = await subscriptionAPI.getRevenueTotals()
+        if (response) {
+          const statsData: any = response.data || response
+          totalRevenue = statsData.totalRevenue || 0
         }
       } catch (error) {
         console.error('Failed to load subscription stats:', error)
+        // Use localStorage fallback or default value
+        const cachedRevenue = localStorage.getItem('admin_dashboard_revenue')
+        totalRevenue = cachedRevenue ? JSON.parse(cachedRevenue) : 0
       }
 
       setStats({
@@ -117,16 +129,19 @@ const AdminDashboard: React.FC = () => {
         activeUsers
       })
 
-      // Generate monthly data for charts
+      // Cache revenue for offline use
+      localStorage.setItem('admin_dashboard_revenue', JSON.stringify(totalRevenue))
+
+      // Generate monthly data for charts - using realistic random distribution
       const months = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12']
-      const monthlyChartData = months.map((month) => ({
+      const monthlyChartData = months.map((month, index) => ({
         month,
-        revenue: Math.floor(Math.random() * 500000) + 200000
+        revenue: Math.max(100000, Math.floor(totalRevenue / 12 + (Math.random() - 0.5) * totalRevenue / 6))
       }))
       setMonthlyData(monthlyChartData)
 
-      // Recent activities
-      const activities = [
+      // Recent activities with proper typing
+      const activities: any[] = [
         {
           id: '1',
           user: 'Nguyễn Văn A',
@@ -162,6 +177,46 @@ const AdminDashboard: React.FC = () => {
       setRecentActivities(activities)
     } catch (error) {
       console.error('Error loading dashboard data:', error)
+      // Set safe defaults on error
+      setStats({
+        totalUsers: 0,
+        totalRevenue: 0,
+        activeUsers: 0
+      })
+      setRecentActivities([])
+    }
+  }
+
+  const loadAnalytics = async () => {
+    setLoadingAnalytics(true)
+    try {
+      const [blogResponse, revenueResponse] = await Promise.allSettled([
+        blogAPI.getStatusStats(),
+        subscriptionAPI.getRevenueTotals(),
+      ])
+
+      // Handle blog stats with proper error handling
+      if (blogResponse.status === 'fulfilled' && blogResponse.value) {
+        setBlogStats(blogResponse.value || {})
+      } else {
+        console.error('Failed to fetch blog stats:', blogResponse.status === 'rejected' ? blogResponse.reason : 'Empty response')
+        setBlogStats({})
+      }
+
+      // Handle revenue stats with proper error handling
+      if (revenueResponse.status === 'fulfilled' && revenueResponse.value) {
+        const revenueData: any = revenueResponse.value?.data || revenueResponse.value || { totalRevenue: 0 }
+        setRevenueTotals(revenueData)
+      } else {
+        console.error('Failed to fetch revenue stats:', revenueResponse.status === 'rejected' ? revenueResponse.reason : 'Empty response')
+        setRevenueTotals({ totalRevenue: 0 })
+      }
+    } catch (error) {
+      console.error('Error loading analytics:', error)
+      setBlogStats({})
+      setRevenueTotals({ totalRevenue: 0 })
+    } finally {
+      setLoadingAnalytics(false)
     }
   }
 
@@ -259,6 +314,30 @@ const AdminDashboard: React.FC = () => {
               </Spin>
             </Card>
           </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card hoverable>
+              <Spin spinning={isLoadingAiStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
+                <Statistic
+                  title="Tổng yêu cầu AI"
+                  value={aiStats?.totalRequests || 0}
+                  prefix={<RobotOutlined />}
+                  valueStyle={{ color: '#8B5CF6' }}
+                />
+              </Spin>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card hoverable>
+              <Spin spinning={isLoadingAiStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
+                <Statistic
+                  title="Người dùng dùng AI"
+                  value={aiStats?.totalUsers || 0}
+                  prefix={<UserOutlined />}
+                  valueStyle={{ color: '#6366F1' }}
+                />
+              </Spin>
+            </Card>
+          </Col>
         </Row>
       </Card>
 
@@ -293,6 +372,33 @@ const AdminDashboard: React.FC = () => {
               suffix="đ"
               valueStyle={{ color: '#722ed1' }}
             />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Analytics Summary */}
+      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card loading={loadingAnalytics} onClick={() => navigate('/admin/blog-analytics')} hoverable>
+            <Statistic
+              title="Blog chờ duyệt"
+              value={blogStats.pending || 0}
+              prefix={<BellOutlined />}
+              valueStyle={{ color: '#F59E0B' }}
+            />
+            <Tag color="blue" style={{ marginTop: 8 }}>Tổng: {(blogStats.pending || 0) + (blogStats.published || 0) + (blogStats.rejected || 0) + (blogStats.draft || 0)}</Tag>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card loading={loadingAnalytics} onClick={() => navigate('/admin/revenue')} hoverable>
+            <Statistic
+              title="Doanh thu (tổng)"
+              value={revenueTotals.totalRevenue || 0}
+              prefix={<DollarOutlined />}
+              suffix="đ"
+              valueStyle={{ color: '#10B981' }}
+            />
+            <Tag color="green" style={{ marginTop: 8 }}>Active: {revenueTotals.activeSubscriptions ?? 0}</Tag>
           </Card>
         </Col>
       </Row>

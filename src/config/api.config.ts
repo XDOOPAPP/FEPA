@@ -5,7 +5,7 @@
 
 // ========== BASE URLs ==========
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://76.13.21.84:3000/api/v1'
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://76.13.21.84:3102'
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://76.13.21.84:3000'
 
 // ========== API ENDPOINTS ==========
 export const API_CONFIG = {
@@ -45,6 +45,15 @@ export const API_CONFIG = {
     UPDATE_PLAN: (id: string) => `/subscriptions/plans/${id}`,        // PATCH
     DELETE_PLAN: (id: string) => `/subscriptions/plans/${id}`,        // DELETE
     ADMIN_STATS: '/subscriptions/admin/stats',                        // GET
+    REVENUE_TOTAL: '/subscriptions/stats/total-revenue',              // GET
+    REVENUE_OVER_TIME: '/subscriptions/stats/revenue-over-time',      // GET ?period=daily&days=30
+    REVENUE_BY_PLAN: '/subscriptions/stats/revenue-by-plan',          // GET
+  },
+
+  // ===== PAYMENT ENDPOINTS =====
+  PAYMENTS: {
+    LOOKUP: (ref: string) => `/payments/${ref}`,                  // GET
+    IPN_LOGS: '/payments/vnpay/ipn',                              // GET (optional)
   },
 
   // ===== BUDGET ENDPOINTS =====
@@ -59,6 +68,9 @@ export const API_CONFIG = {
     // Expense service exposes categories under /expenses/categories
     LIST: '/expenses/categories',
     DETAIL: (id: string) => `/expenses/categories/${id}`,
+    CREATE: '/expenses/categories',
+    UPDATE: (id: string) => `/expenses/categories/${id}`,
+    DELETE: (id: string) => `/expenses/categories/${id}`,
   },
 
   // ===== EXPENSE ENDPOINTS =====
@@ -75,6 +87,8 @@ export const API_CONFIG = {
     DETAIL: (id: string) => `/blogs/${id}`,                           // GET
     APPROVE: (id: string) => `/blogs/${id}/approve`,                  // POST
     REJECT: (id: string) => `/blogs/${id}/reject`,                    // POST
+    STATS_STATUS: '/blogs/statistics/status',                        // GET
+    STATS_MONTHLY: (year: number) => `/blogs/statistics/monthly?year=${year}`, // GET
   },
 
   // ===== NOTIFICATION ENDPOINTS =====
@@ -93,6 +107,11 @@ export const API_CONFIG = {
   SYSTEM: {
     SETTINGS: '/system/settings',
     HEALTH: '/system/health',
+  },
+
+  // ===== AI ENDPOINTS =====
+  AI: {
+    ADMIN_STATS: '/ai/admin/stats',                                   // GET
   },
 }
 

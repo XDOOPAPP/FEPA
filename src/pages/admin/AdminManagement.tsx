@@ -148,7 +148,16 @@ export default function AdminManagement() {
 
   // ========== Stats ==========
   
-  const admins = adminsData?.data || []
+  const adminsPayload: any = adminsData || {}
+  const admins = Array.isArray(adminsPayload.data)
+    ? adminsPayload.data
+    : Array.isArray(adminsPayload.users)
+      ? adminsPayload.users
+      : Array.isArray(adminsPayload.items)
+        ? adminsPayload.items
+        : Array.isArray(adminsPayload)
+          ? adminsPayload
+          : []
   const totalAdmins = admins.length
   const verifiedAdmins = admins.filter(a => a.isVerified).length
   const activeAdmins = admins.filter(a => a.isActive).length
@@ -217,7 +226,7 @@ export default function AdminManagement() {
           columns={columns}
           dataSource={admins}
           loading={isLoading}
-          rowKey="id"
+          rowKey={(record: any) => record.id || record._id || record.email}
           pagination={{
             pageSize: 10,
             showTotal: (total) => `Tổng số ${total} admin`,

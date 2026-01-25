@@ -36,7 +36,7 @@ const expenseAPI = {
    */
   getAdminStats: async () => {
     const response = await axiosInstance.get<ExpenseStatsResponse>(
-      `${API_CONFIG.EXPENSES.LIST}/admin/stats`
+      '/expenses/admin/stats' // Fixed: direct path without API_CONFIG
     )
     
     // Normalize response

@@ -5,7 +5,35 @@
 [![React](https://img.shields.io/badge/React-18.3.1-blue.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7.2-blue.svg)](https://www.typescriptlang.org/)
 [![Ant Design](https://img.shields.io/badge/Ant%20Design-5.22.0-blue.svg)](https://ant.design/)
-[![Vite](https://img.shields.io/badge/Vite-Latest-purple.svg)](https://vitejs.dev/)
+[![Vite](https://img.shields.io/badge/Vite-6.4.1-purple.svg)](https://vitejs.dev/)
+
+## 🚀 Quick Start
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd FEPA
+
+# Install dependencies
+npm install
+
+# Copy environment file
+cp .env.example .env
+
+# Start development server
+npm run dev
+```
+
+**Access**: http://localhost:5174
+
+## 📚 Documentation
+
+- **[Technical Documentation](TECHNICAL_DOCUMENTATION.md)** - Architecture, API integration, state management
+- **[User Guide](USER_GUIDE.md)** - Complete admin user manual
+- **[Testing Guide](TESTING_GUIDE.md)** - Testing checklist and procedures
+- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Step-by-step deployment instructions
+- **[Production Checklist](PRODUCTION_CHECKLIST.md)** - Pre-deployment verification
+- **[Project Completion Plan](PROJECT_COMPLETION_PLAN.md)** - Development roadmap
 
 ---
 

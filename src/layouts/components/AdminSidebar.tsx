@@ -7,9 +7,16 @@ import {
   CrownOutlined,
   TeamOutlined,
   SafetyOutlined,
+  AreaChartOutlined,
+  BarChartOutlined,
+  DollarCircleOutlined,
+  CreditCardOutlined,
+  AppstoreAddOutlined,
+  ScanOutlined,
+  RobotOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
-import './Sidebar.css'
+import '../Sidebar.css'
 
 const { Sider } = Layout
 
@@ -21,43 +28,93 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
   const navigate = useNavigate()
   const location = useLocation()
 
+  // Gom nhóm quản lý người dùng vào một menu cha
   const menuItems = [
     {
       key: '/admin/dashboard',
       icon: <DashboardOutlined />,
       label: 'Dashboard',
-      onClick: () => navigate('/admin/dashboard')
+      onClick: () => navigate('/admin/dashboard'),
     },
     {
-      key: '/admin/admins',
-      icon: <SafetyOutlined />,
-      label: 'Quản lý Admin',
-      onClick: () => navigate('/admin/admins')
-    },
-    {
-      key: '/admin/users',
+      key: 'user-management',
       icon: <TeamOutlined />,
-      label: 'Quản lý User',
-      onClick: () => navigate('/admin/users')
+      label: 'Quản lý người dùng',
+      children: [
+        {
+          key: '/admin/admins',
+          icon: <SafetyOutlined />,
+          label: 'Quản lý Admin',
+          onClick: () => navigate('/admin/admins'),
+        },
+        {
+          key: '/admin/users',
+          icon: <TeamOutlined />,
+          label: 'Quản lý User',
+          onClick: () => navigate('/admin/users'),
+        },
+        {
+          key: '/admin/user-stats',
+          icon: <AreaChartOutlined />,
+          label: 'Thống kê User',
+          onClick: () => navigate('/admin/user-stats'),
+        },
+      ],
+    },
+    {
+      key: '/admin/blog-analytics',
+      icon: <BarChartOutlined />,
+      label: 'Thống kê Blog',
+      onClick: () => navigate('/admin/blog-analytics'),
+    },
+    {
+      key: '/admin/ocr-analytics',
+      icon: <ScanOutlined />,
+      label: 'Thống kê OCR',
+      onClick: () => navigate('/admin/ocr-analytics'),
+    },
+    {
+      key: '/admin/ai-analytics',
+      icon: <RobotOutlined />,
+      label: 'Thống kê AI',
+      onClick: () => navigate('/admin/ai-analytics'),
+    },
+    {
+      key: '/admin/revenue',
+      icon: <DollarCircleOutlined />,
+      label: 'Doanh thu',
+      onClick: () => navigate('/admin/revenue'),
+    },
+    {
+      key: '/admin/payments',
+      icon: <CreditCardOutlined />,
+      label: 'Thanh toán',
+      onClick: () => navigate('/admin/payments'),
+    },
+    {
+      key: '/admin/expense-categories',
+      icon: <AppstoreAddOutlined />,
+      label: 'Danh mục chi tiêu',
+      onClick: () => navigate('/admin/expense-categories'),
     },
     {
       key: '/admin/subscription',
       icon: <CrownOutlined />,
       label: 'Subscription',
-      onClick: () => navigate('/admin/subscription')
+      onClick: () => navigate('/admin/subscription'),
     },
     {
       key: '/admin/profile',
       icon: <UserOutlined />,
       label: 'Profile',
-      onClick: () => navigate('/admin/profile')
+      onClick: () => navigate('/admin/profile'),
     },
     {
       key: '/admin/settings',
       icon: <SettingOutlined />,
       label: 'Account Settings',
-      onClick: () => navigate('/admin/settings')
-    }
+      onClick: () => navigate('/admin/settings'),
+    },
   ]
 
   return (
@@ -77,6 +134,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
         theme="dark"
         mode="inline"
         selectedKeys={[location.pathname]}
+        defaultOpenKeys={['user-management']}
         items={menuItems}
       />
     </Sider>

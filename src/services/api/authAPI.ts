@@ -53,7 +53,9 @@ const authAPI = {
    * Trả về accessToken, refreshToken và thông tin user
    */
   login: async (data: LoginRequest): Promise<AuthResponse> => {
+    console.log('🔐 Calling login API with:', { email: data.email })
     const res = await axiosInstance.post<AuthResponse>(API_CONFIG.AUTH.LOGIN, data)
+    console.log('🔐 Login API raw response:', res)
     return res
   },
 
@@ -97,9 +99,12 @@ const authAPI = {
 
   /**
    * Lấy thông tin user hiện tại - GET /auth/me
+   * Timeout 30s vì endpoint này có thể chậm
    */
   getCurrentUser: async (): Promise<any> => {
-    return axiosInstance.get(API_CONFIG.AUTH.ME)
+    return axiosInstance.get(API_CONFIG.AUTH.ME, {
+      timeout: 30000, // 30 seconds timeout
+    })
   },
 
   /**
