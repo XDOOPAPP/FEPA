@@ -26,8 +26,6 @@ const UserManagement = lazy(() => import('./pages/admin/UserManagement'))
 const UserStatistics = lazy(() => import('./pages/admin/UserStatistics'))
 const BlogAnalytics = lazy(() => import('./pages/admin/BlogAnalytics'))
 const RevenueDashboard = lazy(() => import('./pages/admin/RevenueDashboard'))
-const PaymentManagement = lazy(() => import('./pages/admin/PaymentManagement'))
-const ExpenseCategories = lazy(() => import('./pages/admin/ExpenseCategories'))
 const OcrAnalytics = lazy(() => import('./pages/admin/OcrAnalytics'))
 const AiAnalytics = lazy(() => import('./pages/admin/AiAnalytics'))
 const PendingBlogs = lazy(() => import('./pages/admin/blogs').then(m => ({ default: m.PendingBlogs })))
@@ -224,28 +222,6 @@ function App() {
                   <AdminRoute>
                     <AdminLayout>
                       <AiAnalytics />
-                    </AdminLayout>
-                  </AdminRoute>
-                } 
-              />
-
-              <Route 
-                path="/admin/payments" 
-                element={
-                  <AdminRoute>
-                    <AdminLayout>
-                      <PaymentManagement />
-                    </AdminLayout>
-                  </AdminRoute>
-                } 
-              />
-
-              <Route 
-                path="/admin/expense-categories" 
-                element={
-                  <AdminRoute>
-                    <AdminLayout>
-                      <ExpenseCategories />
                     </AdminLayout>
                   </AdminRoute>
                 } 

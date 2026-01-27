@@ -17,6 +17,7 @@ import {
   FileSearchOutlined,
   FileDoneOutlined,
   FileExclamationOutlined,
+  BellOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
 import '../Sidebar.css'
@@ -96,34 +97,35 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
       ],
     },
     {
-      key: '/admin/ocr-analytics',
-      icon: <ScanOutlined />,
-      label: 'Thống kê OCR',
-      onClick: () => navigate('/admin/ocr-analytics'),
+      key: 'ai-ocr-analytics',
+      icon: <RobotOutlined />,
+      label: 'AI / OCR',
+      children: [
+        {
+          key: '/admin/ai-analytics',
+          icon: <RobotOutlined />,
+          label: 'Thống kê AI',
+          onClick: () => navigate('/admin/ai-analytics'),
+        },
+        {
+          key: '/admin/ocr-analytics',
+          icon: <ScanOutlined />,
+          label: 'Thống kê OCR',
+          onClick: () => navigate('/admin/ocr-analytics'),
+        },
+      ],
     },
     {
-      key: '/admin/ai-analytics',
-      icon: <RobotOutlined />,
-      label: 'Thống kê AI',
-      onClick: () => navigate('/admin/ai-analytics'),
+      key: '/admin/notifications',
+      icon: <BellOutlined />,
+      label: 'Thông báo',
+      onClick: () => navigate('/admin/notifications'),
     },
     {
       key: '/admin/revenue',
       icon: <DollarCircleOutlined />,
       label: 'Doanh thu',
       onClick: () => navigate('/admin/revenue'),
-    },
-    {
-      key: '/admin/payments',
-      icon: <CreditCardOutlined />,
-      label: 'Thanh toán',
-      onClick: () => navigate('/admin/payments'),
-    },
-    {
-      key: '/admin/expense-categories',
-      icon: <AppstoreAddOutlined />,
-      label: 'Danh mục chi tiêu',
-      onClick: () => navigate('/admin/expense-categories'),
     },
     {
       key: '/admin/subscription',
@@ -162,7 +164,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
         theme="dark"
         mode="inline"
         selectedKeys={[location.pathname]}
-        defaultOpenKeys={['user-management', 'blog-management']}
+        defaultOpenKeys={['user-management', 'blog-management', 'ai-ocr-analytics']}
         items={menuItems}
       />
     </Sider>

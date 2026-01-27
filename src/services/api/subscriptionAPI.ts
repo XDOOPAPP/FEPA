@@ -140,12 +140,22 @@ const subscriptionAPI = {
    * POST /api/v1/subscriptions/plans
    */
   createPlan: async (data: CreatePlanRequest) => {
-    const response = await axiosInstance.post<SubscriptionResponse>(
-      API_CONFIG.SUBSCRIPTIONS.CREATE_PLAN,
-      data
-    )
-    // Response from axiosInstance is already the body
-    return response.data || response
+    try {
+      const response = await axiosInstance.post<SubscriptionResponse>(
+        API_CONFIG.SUBSCRIPTIONS.CREATE_PLAN,
+        data
+      )
+      // Response from axiosInstance is already the body
+      return response.data || response
+    } catch (error: any) {
+      console.error('❌ Failed to create plan:', error)
+      if (error.status === 401) {
+        console.error('🔐 Unauthorized - Token may be invalid or missing ADMIN role')
+      } else if (error.status === 403) {
+        console.error('⛔ Forbidden - User does not have ADMIN privileges')
+      }
+      throw error
+    }
   },
 
   /**
@@ -153,11 +163,21 @@ const subscriptionAPI = {
    * PATCH /api/v1/subscriptions/plans/:id
    */
   updatePlan: async (id: string, data: UpdatePlanRequest) => {
-    const response = await axiosInstance.patch<SubscriptionResponse>(
-      API_CONFIG.SUBSCRIPTIONS.UPDATE_PLAN(id),
-      data
-    )
-    return response.data || response
+    try {
+      const response = await axiosInstance.patch<SubscriptionResponse>(
+        API_CONFIG.SUBSCRIPTIONS.UPDATE_PLAN(id),
+        data
+      )
+      return response.data || response
+    } catch (error: any) {
+      console.error('❌ Failed to update plan:', error)
+      if (error.status === 401) {
+        console.error('🔐 Unauthorized - Token may be invalid or missing ADMIN role')
+      } else if (error.status === 403) {
+        console.error('⛔ Forbidden - User does not have ADMIN privileges')
+      }
+      throw error
+    }
   },
 
   /**
@@ -165,10 +185,20 @@ const subscriptionAPI = {
    * DELETE /api/v1/subscriptions/plans/:id
    */
   disablePlan: async (id: string) => {
-    const response = await axiosInstance.delete<SubscriptionResponse>(
-      API_CONFIG.SUBSCRIPTIONS.DELETE_PLAN(id)
-    )
-    return response.data || response
+    try {
+      const response = await axiosInstance.delete<SubscriptionResponse>(
+        API_CONFIG.SUBSCRIPTIONS.DELETE_PLAN(id)
+      )
+      return response.data || response
+    } catch (error: any) {
+      console.error('❌ Failed to disable plan:', error)
+      if (error.status === 401) {
+        console.error('🔐 Unauthorized - Token may be invalid or missing ADMIN role')
+      } else if (error.status === 403) {
+        console.error('⛔ Forbidden - User does not have ADMIN privileges')
+      }
+      throw error
+    }
   },
 
   /**
@@ -176,13 +206,21 @@ const subscriptionAPI = {
    * GET /api/v1/subscriptions/admin/stats
    */
   getStats: async () => {
-    const response = await axiosInstance.get<StatsResponse>(
-      API_CONFIG.SUBSCRIPTIONS.ADMIN_STATS
-    )
+    try {
+      const response = await axiosInstance.get<StatsResponse>(
+        API_CONFIG.SUBSCRIPTIONS.ADMIN_STATS
+      )
 
-    // Ưu tiên field data (nếu backend bọc), fallback trả map thô
-    const payload = response.data || (response as any)
-    return payload?.data ?? payload
+      // Ưu tiên field data (nếu backend bọc), fallback trả map thô
+      const payload = response.data || (response as any)
+      return payload?.data ?? payload
+    } catch (error: any) {
+      console.error('❌ Failed to fetch subscription stats:', error)
+      if (error.status === 401) {
+        console.error('🔐 Unauthorized - Token may be invalid or missing ADMIN role')
+      }
+      throw error
+    }
   },
 
   /**
@@ -284,11 +322,19 @@ const subscriptionAPI = {
    * GET /subscriptions/stats/revenue-over-time?period=daily&days=30
    */
   getRevenueOverTime: async (params: RevenueOverTimeParams = { period: 'daily', days: 30 }) => {
-    const response = await axiosInstance.get<RevenueOverTimeResponse>(
-      API_CONFIG.SUBSCRIPTIONS.REVENUE_OVER_TIME,
-      { params }
-    )
-    return response.data || response
+    try {
+      const response = await axiosInstance.get<RevenueOverTimeResponse>(
+        API_CONFIG.SUBSCRIPTIONS.REVENUE_OVER_TIME,
+        { params }
+      )
+      return response.data || response
+    } catch (error: any) {
+      console.error('❌ Failed to fetch revenue over time:', error)
+      if (error.status === 401) {
+        console.error('🔐 Unauthorized - Token may be invalid or missing ADMIN role')
+      }
+      throw error
+    }
   },
 
   /**
@@ -296,10 +342,18 @@ const subscriptionAPI = {
    * GET /subscriptions/stats/total-revenue
    */
   getRevenueTotals: async () => {
-    const response = await axiosInstance.get<RevenueTotalsResponse>(
-      API_CONFIG.SUBSCRIPTIONS.REVENUE_TOTAL
-    )
-    return response.data || response
+    try {
+      const response = await axiosInstance.get<RevenueTotalsResponse>(
+        API_CONFIG.SUBSCRIPTIONS.REVENUE_TOTAL
+      )
+      return response.data || response
+    } catch (error: any) {
+      console.error('❌ Failed to fetch revenue totals:', error)
+      if (error.status === 401) {
+        console.error('🔐 Unauthorized - Token may be invalid or missing ADMIN role')
+      }
+      throw error
+    }
   },
 
   /**
@@ -307,11 +361,19 @@ const subscriptionAPI = {
    * GET /subscriptions/stats/revenue-by-plan
    */
   getRevenueByPlan: async () => {
-    const response = await axiosInstance.get<RevenueByPlanItem[] | { data: RevenueByPlanItem[] }>(
-      API_CONFIG.SUBSCRIPTIONS.REVENUE_BY_PLAN
-    )
-    const payload: any = response.data || response
-    return Array.isArray(payload) ? payload : payload.data
+    try {
+      const response = await axiosInstance.get<RevenueByPlanItem[] | { data: RevenueByPlanItem[] }>(
+        API_CONFIG.SUBSCRIPTIONS.REVENUE_BY_PLAN
+      )
+      const payload: any = response.data || response
+      return Array.isArray(payload) ? payload : payload.data
+    } catch (error: any) {
+      console.error('❌ Failed to fetch revenue by plan:', error)
+      if (error.status === 401) {
+        console.error('🔐 Unauthorized - Token may be invalid or missing ADMIN role')
+      }
+      throw error
+    }
   },
 }
 

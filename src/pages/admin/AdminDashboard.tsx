@@ -19,6 +19,8 @@ import dayjs from 'dayjs'
 import subscriptionAPI from '../../services/api/subscriptionAPI'
 import { useGetExpenseAdminStats, useGetBudgetAdminStats, useGetOcrAdminStats, useGetAiAdminStats } from '../../services/queries'
 import blogAPI from '../../services/api/blogAPI'
+import adminApiService from '../../services/api/adminApiService'
+import { AuthDebugPanel } from '../../components/AuthDebugPanel'
 
 const { Title, Text } = Typography
 
@@ -49,67 +51,26 @@ const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     loadDashboardData()
-    initializeMockData()
     loadAnalytics()
   }, [])
 
-  const initializeMockData = () => {
-
-    // Initialize users data if not exists
-    const users = localStorage.getItem('all_users')
-    if (!users) {
-      const mockUsers = [
-        {
-          id: '1',
-          email: 'user1@example.com',
-          fullName: 'Nguyễn Văn A',
-          role: 'user',
-          status: 'active',
-          createdAt: dayjs().subtract(30, 'day').toISOString(),
-          lastLogin: dayjs().subtract(1, 'hour').toISOString()
-        },
-        {
-          id: '2',
-          email: 'user2@example.com',
-          fullName: 'Trần Thị B',
-          role: 'user',
-          status: 'active',
-          createdAt: dayjs().subtract(25, 'day').toISOString(),
-          lastLogin: dayjs().subtract(3, 'hour').toISOString()
-        },
-        {
-          id: '3',
-          email: 'user3@example.com',
-          fullName: 'Lê Văn C',
-          role: 'user',
-          status: 'locked',
-          createdAt: dayjs().subtract(20, 'day').toISOString(),
-          lastLogin: dayjs().subtract(5, 'day').toISOString()
-        },
-        {
-          id: '4',
-          email: 'admin@example.com',
-          fullName: 'Admin User',
-          role: 'admin',
-          status: 'active',
-          createdAt: dayjs().subtract(60, 'day').toISOString(),
-          lastLogin: new Date().toISOString()
-        }
-      ]
-      localStorage.setItem('all_users', JSON.stringify(mockUsers))
-    }
-  }
-
   const loadDashboardData = async () => {
     try {
-      // Load all users (mock for now as no API exists)
-      const allUsers = JSON.parse(localStorage.getItem('all_users') || '[]')
-      const activeUsers = allUsers.filter((u: any) => u.status === 'active').length
-
-      // Calculate revenue (default fallback value)
+      let totalUsers = 0
+      let activeUsers = 0
       let totalRevenue = 0
 
-      // Fetch real subscription stats from backend
+      // Fetch user stats from auth service
+      try {
+        const userStatsResponse = await adminApiService.getUserStats()
+        const userStats: any = userStatsResponse?.data || userStatsResponse || {}
+        totalUsers = userStats.total || userStats.totalUsers || 0
+        activeUsers = userStats.active || userStats.activeUsers || 0
+      } catch (error) {
+        console.error('Failed to load user stats:', error)
+      }
+
+      // Fetch revenue stats from subscription service
       try {
         const response = await subscriptionAPI.getRevenueTotals()
         if (response) {
@@ -118,63 +79,19 @@ const AdminDashboard: React.FC = () => {
         }
       } catch (error) {
         console.error('Failed to load subscription stats:', error)
-        // Use localStorage fallback or default value
-        const cachedRevenue = localStorage.getItem('admin_dashboard_revenue')
-        totalRevenue = cachedRevenue ? JSON.parse(cachedRevenue) : 0
       }
 
       setStats({
-        totalUsers: allUsers.length,
+        totalUsers,
         totalRevenue,
         activeUsers
       })
 
-      // Cache revenue for offline use
-      localStorage.setItem('admin_dashboard_revenue', JSON.stringify(totalRevenue))
+      // TODO: Get real monthly revenue data from subscriptionAPI.getRevenueOverTime()
+      setMonthlyData([])
 
-      // Generate monthly data for charts - using realistic random distribution
-      const months = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12']
-      const monthlyChartData = months.map((month, index) => ({
-        month,
-        revenue: Math.max(100000, Math.floor(totalRevenue / 12 + (Math.random() - 0.5) * totalRevenue / 6))
-      }))
-      setMonthlyData(monthlyChartData)
-
-      // Recent activities with proper typing
-      const activities: any[] = [
-        {
-          id: '1',
-          user: 'Nguyễn Văn A',
-          action: 'Thêm chi tiêu mới',
-          amount: '150,000đ',
-          time: dayjs().subtract(5, 'minute').fromNow(),
-          type: 'expense'
-        },
-        {
-          id: '2',
-          user: 'Trần Thị B',
-          action: 'Đăng ký tài khoản',
-          time: dayjs().subtract(30, 'minute').fromNow(),
-          type: 'register'
-        },
-        {
-          id: '3',
-          user: 'Lê Văn C',
-          action: 'Vượt ngân sách',
-          amount: '2,500,000đ',
-          time: dayjs().subtract(2, 'hour').fromNow(),
-          type: 'warning'
-        },
-        {
-          id: '4',
-          user: 'Phạm Thị D',
-          action: 'Thanh toán đăng ký Premium',
-          amount: '199,000đ',
-          time: dayjs().subtract(5, 'hour').fromNow(),
-          type: 'payment'
-        }
-      ]
-      setRecentActivities(activities)
+      // TODO: Get real recent activities from backend
+      setRecentActivities([])
     } catch (error) {
       console.error('Error loading dashboard data:', error)
       // Set safe defaults on error
@@ -238,6 +155,13 @@ const AdminDashboard: React.FC = () => {
   return (
     <div style={{ padding: '24px' }}>
       <Title level={2}>Admin Dashboard</Title>
+
+      {/* Auth Debug Panel - Only visible in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{ marginBottom: 24 }}>
+          <AuthDebugPanel compact />
+        </div>
+      )}
 
       {/* User Statistics Cards */}
       <Card title="Thống kê Hệ thống" style={{ marginBottom: '24px' }}>
@@ -341,73 +265,61 @@ const AdminDashboard: React.FC = () => {
         </Row>
       </Card>
 
-      {/* Statistics Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Tổng người dùng"
-              value={stats.totalUsers}
-              prefix={<TeamOutlined />}
-              valueStyle={{ color: '#3f8600' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Người dùng hoạt động"
-              value={stats.activeUsers}
-              prefix={<UserOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Doanh thu"
-              value={stats.totalRevenue}
-              prefix={<DollarOutlined />}
-              suffix="đ"
-              valueStyle={{ color: '#722ed1' }}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Analytics Summary */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={loadingAnalytics} onClick={() => navigate('/admin/blog-analytics')} hoverable>
-            <Statistic
-              title="Blog chờ duyệt"
-              value={blogStats.pending || 0}
-              prefix={<BellOutlined />}
-              valueStyle={{ color: '#F59E0B' }}
-            />
-            <Tag color="blue" style={{ marginTop: 8 }}>Tổng: {(blogStats.pending || 0) + (blogStats.published || 0) + (blogStats.rejected || 0) + (blogStats.draft || 0)}</Tag>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card loading={loadingAnalytics} onClick={() => navigate('/admin/revenue')} hoverable>
-            <Statistic
-              title="Doanh thu (tổng)"
-              value={revenueTotals.totalRevenue || 0}
-              prefix={<DollarOutlined />}
-              suffix="đ"
-              valueStyle={{ color: '#10B981' }}
-            />
-            <Tag color="green" style={{ marginTop: 8 }}>Active: {revenueTotals.activeSubscriptions ?? 0}</Tag>
-          </Card>
-        </Col>
-      </Row>
+      {/* Core System Statistics */}
+      <Card title="Thống kê hệ thống chính" style={{ marginBottom: '24px' }}>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} lg={6}>
+            <Card hoverable>
+              <Statistic
+                title="Tổng người dùng"
+                value={stats.totalUsers}
+                prefix={<TeamOutlined />}
+                valueStyle={{ color: '#3f8600' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card hoverable>
+              <Statistic
+                title="Người dùng hoạt động"
+                value={stats.activeUsers}
+                prefix={<UserOutlined />}
+                valueStyle={{ color: '#1890ff' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card hoverable>
+              <Statistic
+                title="Tổng doanh thu"
+                value={stats.totalRevenue}
+                prefix={<DollarOutlined />}
+                suffix="đ"
+                valueStyle={{ color: '#722ed1' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card hoverable loading={loadingAnalytics} onClick={() => navigate('/admin/blogs/pending')}>
+              <Statistic
+                title="Blog chờ duyệt"
+                value={blogStats.pending || 0}
+                prefix={<BellOutlined />}
+                valueStyle={{ color: '#F59E0B' }}
+              />
+              <Tag color="blue" style={{ marginTop: 8 }}>Tổng: {(blogStats.pending || 0) + (blogStats.published || 0) + (blogStats.rejected || 0) + (blogStats.draft || 0)}</Tag>
+            </Card>
+          </Col>
+        </Row>
+      </Card>
 
       {/* Charts */}
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
         <Col xs={24} lg={16}>
           <Card title="Thống kê theo tháng">
-            <ResponsiveContainer width="100%" height={300}>
+            <div style={{ width: '100%', height: 300, minHeight: 300 }}>
+              {monthlyData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
               <LineChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
@@ -416,18 +328,24 @@ const AdminDashboard: React.FC = () => {
                 <Legend />
                 <Line type="monotone" dataKey="revenue" stroke="#82ca9d" name="Doanh thu" />
               </LineChart>
-            </ResponsiveContainer>
-          </Card>
+            </ResponsiveContainer>              ) : (
+                <div style={{ textAlign: 'center', padding: '80px 0' }}>
+                  <Text type="secondary">Chưa có dữ liệu thống kê</Text>
+                </div>
+              )}
+            </div>          </Card>
         </Col>
         <Col xs={24} lg={8}>
           <Card title="Thông báo nhanh">
             <List
               dataSource={[
-                { title: 'Người dùng mới', count: 5, status: 'processing' },
-                { title: 'Yêu cầu hỗ trợ', count: 2, status: 'error' },
-                { title: 'Báo cáo chờ duyệt', count: 1, status: 'default' }
+                // TODO: Replace with real data from backend
+                // { title: 'Người dùng mới', count: newUsersCount, status: 'processing' },
+                // { title: 'Yêu cầu hỗ trợ', count: supportRequestsCount, status: 'error' },
+                // { title: 'Báo cáo chờ duyệt', count: pendingReportsCount, status: 'default' }
               ]}
-              renderItem={(item) => (
+              locale={{ emptyText: 'Chưa có thông báo' }}
+              renderItem={(item: any) => (
                 <List.Item>
                   <Space style={{ width: '100%', justifyContent: 'space-between' }}>
                     <Text>{item.title}</Text>
@@ -444,24 +362,30 @@ const AdminDashboard: React.FC = () => {
       <Row gutter={[16, 16]}>
         <Col xs={24}>
           <Card title="Hoạt động gần đây">
-            <List
-              dataSource={recentActivities}
-              renderItem={(item) => (
-                <List.Item>
-                  <List.Item.Meta
-                    avatar={<Avatar icon={getActivityIcon(item.type)} />}
-                    title={
-                      <Space>
-                        <Text strong>{item.user}</Text>
-                        <Text type="secondary">{item.action}</Text>
-                        {item.amount && <Text type="success">{item.amount}</Text>}
-                      </Space>
-                    }
-                    description={item.time}
-                  />
-                </List.Item>
-              )}
-            />
+            {recentActivities.length > 0 ? (
+              <List
+                dataSource={recentActivities}
+                renderItem={(item) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      avatar={<Avatar icon={getActivityIcon(item.type)} />}
+                      title={
+                        <Space>
+                          <Text strong>{item.user}</Text>
+                          <Text type="secondary">{item.action}</Text>
+                          {item.amount && <Text type="success">{item.amount}</Text>}
+                        </Space>
+                      }
+                      description={item.time}
+                    />
+                  </List.Item>
+                )}
+              />
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <Text type="secondary">Chưa có hoạt động gần đây</Text>
+              </div>
+            )}
           </Card>
         </Col>
       </Row>

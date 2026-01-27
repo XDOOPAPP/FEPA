@@ -47,6 +47,8 @@ axiosInstance.interceptors.request.use(
       const token = localStorage.getItem('accessToken')
       if (token) {
         config.headers.Authorization = `Bearer ${token}`
+      } else {
+        console.warn('⚠️ No access token found in localStorage for request:', config.url)
       }
     }
 

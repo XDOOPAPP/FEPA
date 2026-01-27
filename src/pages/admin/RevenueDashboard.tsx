@@ -24,9 +24,30 @@ export default function RevenueDashboard() {
         subscriptionAPI.getRevenueOverTime({ period, days }),
         subscriptionAPI.getRevenueByPlan(),
       ])
+      
+      // Transform totals
       setTotals((totalsRes as any)?.data || totalsRes || { totalRevenue: 0 })
-      setRevenueOverTime((overTimeRes as any)?.data || overTimeRes || [])
-      setRevenueByPlan(byPlanRes || [])
+      
+      // Transform revenue over time - map _id to date field
+      const overTimeData = (overTimeRes as any)?.data || overTimeRes || []
+      const transformedOverTime = Array.isArray(overTimeData) 
+        ? overTimeData.map((item: any) => ({
+            date: item._id || item.date,
+            revenue: item.totalRevenue || item.revenue || 0
+          }))
+        : []
+      setRevenueOverTime(transformedOverTime)
+      
+      // Transform revenue by plan - flatten nested structure
+      const byPlanData = byPlanRes || []
+      const transformedByPlan = Array.isArray(byPlanData)
+        ? byPlanData.map((item: any) => ({
+            plan: item._id?.planName || item.plan || 'Unknown',
+            revenue: item.totalRevenue || item.revenue || 0,
+            count: item.subscriptionCount || item.count || 0
+          }))
+        : []
+      setRevenueByPlan(transformedByPlan)
     } catch (err) {
       console.error('Failed to load revenue analytics', err)
       setTotals({ totalRevenue: 0 })
@@ -85,8 +106,10 @@ export default function RevenueDashboard() {
               <Statistic
                 title="Tổng doanh thu"
                 value={totals.totalRevenue || 0}
-                prefix={<DollarCircleOutlined style={{ color: 'var(--success)' }} />}
+                prefix={<DollarCircleOutlined style={{ color: '#10B981' }} />}
                 precision={0}
+                suffix="đ"
+                valueStyle={{ color: '#10B981' }}
               />
             </Card>
           </Col>
@@ -95,7 +118,8 @@ export default function RevenueDashboard() {
               <Statistic
                 title="Subscription đang hoạt động"
                 value={totals.activeSubscriptions || 0}
-                prefix={<RiseOutlined style={{ color: 'var(--primary)' }} />}
+                prefix={<RiseOutlined style={{ color: '#0EA5E9' }} />}
+                valueStyle={{ color: '#0EA5E9' }}
               />
             </Card>
           </Col>
@@ -104,7 +128,8 @@ export default function RevenueDashboard() {
               <Statistic
                 title="Đã hủy"
                 value={totals.cancelledSubscriptions || 0}
-                prefix={<ReloadOutlined style={{ color: 'var(--warning)' }} />}
+                prefix={<ReloadOutlined style={{ color: '#F59E0B' }} />}
+                valueStyle={{ color: '#F59E0B' }}
               />
             </Card>
           </Col>
@@ -113,7 +138,8 @@ export default function RevenueDashboard() {
               <Statistic
                 title="Tổng số subscription"
                 value={totals.totalSubscriptions || 0}
-                prefix={<ShoppingOutlined style={{ color: 'var(--info)' }} />}
+                prefix={<ShoppingOutlined style={{ color: '#64748B' }} />}
+                valueStyle={{ color: '#64748B' }}
               />
             </Card>
           </Col>
@@ -133,8 +159,9 @@ export default function RevenueDashboard() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" />
                       <YAxis />
-                      <Tooltip formatter={(value: any) => `${value}đ`} />
-                      <Line type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={3} />
+                      <Tooltip formatter={(value: any) => `${Number(value).toLocaleString()}đ`} />
+                      <Legend />
+                      <Line type="monotone" dataKey="revenue" name="Doanh thu" stroke="#10B981" strokeWidth={3} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -148,10 +175,10 @@ export default function RevenueDashboard() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="plan" />
                       <YAxis />
-                      <Tooltip formatter={(value: any) => `${value}đ`} />
+                      <Tooltip formatter={(value: any) => Number(value).toLocaleString()} />
                       <Legend />
-                      <Bar dataKey="revenue" name="Doanh thu" fill="#0EA5E9" radius={[6,6,0,0]} />
-                      <Bar dataKey="count" name="Số lượt" fill="#10B981" radius={[6,6,0,0]} />
+                      <Bar dataKey="revenue" name="Doanh thu (đ)" fill="#0EA5E9" radius={[6,6,0,0]} />
+                      <Bar dataKey="count" name="Số lượng" fill="#10B981" radius={[6,6,0,0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
