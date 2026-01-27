@@ -1,6 +1,23 @@
 import React, { useState } from 'react'
-import { Card, Form, Input, Button, Avatar, Space, Typography, message, Row, Col } from 'antd'
-import { UserOutlined, MailOutlined, SaveOutlined, PhoneOutlined } from '@ant-design/icons'
+import { 
+  Card, 
+  Form, 
+  Input, 
+  Button, 
+  Avatar, 
+  Space, 
+  Typography, 
+  message, 
+  Row, 
+  Col, 
+  Tag
+} from 'antd'
+import { 
+  UserOutlined, 
+  MailOutlined, 
+  SaveOutlined,
+  CrownOutlined
+} from '@ant-design/icons'
 import { useAuth } from '../../context/AuthContext'
 
 const { Title, Text } = Typography
@@ -8,16 +25,13 @@ const { Title, Text } = Typography
 interface ProfileFormValues {
   fullName: string
   email: string
-  phone?: string
 }
-
 
 const ProfilePage: React.FC = () => {
   const { user, updateProfile } = useAuth()
   const [profileForm] = Form.useForm()
   const [loading, setLoading] = useState(false)
 
-  // Fixed default avatar
   const defaultAvatar = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&s=200'
 
   // Set initial values
@@ -26,7 +40,6 @@ const ProfilePage: React.FC = () => {
       profileForm.setFieldsValue({
         fullName: user.fullName,
         email: user.email,
-        phone: user.phone,
       })
     }
   }, [user, profileForm])
@@ -34,14 +47,12 @@ const ProfilePage: React.FC = () => {
   const handleProfileUpdate = async (values: ProfileFormValues) => {
     try {
       setLoading(true)
-      await new Promise(resolve => setTimeout(resolve, 500)) // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500))
       
-      // Update profile in context
       if (updateProfile) {
         updateProfile({
           fullName: values.fullName,
           email: values.email,
-          phone: values.phone,
         })
       }
       
@@ -53,40 +64,65 @@ const ProfilePage: React.FC = () => {
     }
   }
 
-  // change-password removed for admin users
+  const getRoleBadge = (role: string) => {
+    const roleConfig: Record<string, { color: string; icon: React.ReactNode }> = {
+      admin: { color: 'gold', icon: <CrownOutlined /> },
+      user: { color: 'blue', icon: <UserOutlined /> },
+      premium: { color: 'purple', icon: <CrownOutlined /> },
+    }
+    const config = roleConfig[role?.toLowerCase()] || roleConfig.user
+    return (
+      <Tag color={config.color} icon={config.icon} style={{ fontSize: '14px', padding: '4px 12px' }}>
+        {role?.toUpperCase() || 'USER'}
+      </Tag>
+    )
+  }
 
   if (!user) return null
 
   return (
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-      <Title level={2}>Hồ Sơ Cá Nhân</Title>
+      <Title level={2} style={{ marginBottom: '8px' }}>Hồ Sơ Cá Nhân</Title>
       <Text type="secondary">Quản lý thông tin tài khoản của bạn</Text>
 
       <Row gutter={[24, 24]} style={{ marginTop: '24px' }}>
         {/* Profile Info Card */}
         <Col xs={24} lg={8}>
-          <Card>
+          <Card bordered={false}>
             <Space direction="vertical" size="large" style={{ width: '100%', textAlign: 'center' }}>
               <Avatar 
                 size={120} 
                 icon={<UserOutlined />} 
                 src={defaultAvatar}
-                style={{ backgroundColor: 'var(--primary)' }}
+                style={{ backgroundColor: '#1890ff' }}
               />
+              
               <div>
-                <Title level={4} style={{ marginBottom: '4px' }}>{user.fullName}</Title>
-                <Text type="secondary">{user.email}</Text>
-                {user.phone && <div><Text type="secondary">📱 {user.phone}</Text></div>}
+                <Title level={4} style={{ marginBottom: '8px' }}>
+                  {user.fullName}
+                </Title>
+                <Space direction="vertical" size="small">
+                  <Text type="secondary">
+                    <MailOutlined /> {user.email}
+                  </Text>
+                </Space>
               </div>
+
+              <div style={{ width: '100%' }}>
+                {getRoleBadge(user.role || 'user')}
+              </div>
+
               <div style={{ 
-                padding: '12px', 
-                background: 'var(--bg-base)', 
-                borderRadius: '8px',
-                width: '100%'
+                width: '100%',
+                padding: '16px',
+                background: '#f5f5f5',
+                borderRadius: '8px'
               }}>
                 <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                  <Text><strong>Vai trò:</strong> {user.role || 'User'}</Text>
-                  <Text><strong>ID:</strong> {user.id}</Text>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Text type="secondary">ID Tài Khoản</Text>
+                    <Text strong style={{ fontSize: '13px' }}>{user.id}</Text>
+                  </div>
                 </Space>
               </div>
             </Space>
@@ -95,7 +131,15 @@ const ProfilePage: React.FC = () => {
 
         {/* Edit Profile Form */}
         <Col xs={24} lg={16}>
-          <Card title="Thông Tin Cá Nhân" extra={<UserOutlined />}>
+          <Card 
+            title={
+              <Space>
+                <UserOutlined />
+                <span>Thông Tin Cá Nhân</span>
+              </Space>
+            }
+            bordered={false}
+          >
             <Form
               form={profileForm}
               layout="vertical"
@@ -131,35 +175,24 @@ const ProfilePage: React.FC = () => {
                 />
               </Form.Item>
 
-              <Form.Item
-                name="phone"
-                label="Số Điện Thoại"
-                rules={[
-                  { pattern: /^[0-9]{10,11}$/, message: 'Số điện thoại không hợp lệ (10-11 số)' },
-                ]}
-              >
-                <Input 
-                  prefix={<PhoneOutlined />} 
-                  placeholder="Nhập số điện thoại"
-                  size="large"
-                />
-              </Form.Item>
-
               <Form.Item>
-                <Button 
-                  type="primary" 
-                  htmlType="submit" 
-                  icon={<SaveOutlined />}
-                  loading={loading}
-                  size="large"
-                >
-                  Lưu Thay Đổi
-                </Button>
+                <Space>
+                  <Button 
+                    type="primary" 
+                    htmlType="submit" 
+                    icon={<SaveOutlined />}
+                    loading={loading}
+                    size="large"
+                  >
+                    Lưu Thay Đổi
+                  </Button>
+                  <Button size="large" onClick={() => profileForm.resetFields()}>
+                    Hủy Bỏ
+                  </Button>
+                </Space>
               </Form.Item>
             </Form>
           </Card>
-
-          {/* Change password removed for admin users */}
         </Col>
       </Row>
     </div>

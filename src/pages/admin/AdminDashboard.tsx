@@ -14,7 +14,7 @@ import {
   ScanOutlined,
   RobotOutlined
 } from '@ant-design/icons'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import dayjs from 'dayjs'
 import subscriptionAPI from '../../services/api/subscriptionAPI'
 import { useGetExpenseAdminStats, useGetBudgetAdminStats, useGetOcrAdminStats, useGetAiAdminStats } from '../../services/queries'
@@ -34,8 +34,9 @@ const AdminDashboard: React.FC = () => {
   const [blogStats, setBlogStats] = useState<{ draft?: number; pending?: number; published?: number; rejected?: number }>({})
   const [revenueTotals, setRevenueTotals] = useState<{ totalRevenue: number; activeSubscriptions?: number; totalSubscriptions?: number; cancelledSubscriptions?: number }>({ totalRevenue: 0 })
   const [loadingAnalytics, setLoadingAnalytics] = useState(false)
-  const [recentActivities, setRecentActivities] = useState<any[]>([])
-  const [monthlyData, setMonthlyData] = useState<any[]>([])
+  const [revenueByPlan, setRevenueByPlan] = useState<any[]>([])
+  const [userGrowth, setUserGrowth] = useState<any[]>([])
+  const [loadingCharts, setLoadingCharts] = useState(false)
 
   // Fetch expense stats
   const { data: expenseStats, isLoading: isLoadingExpenseStats } = useGetExpenseAdminStats()
@@ -52,7 +53,42 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     loadDashboardData()
     loadAnalytics()
+    loadChartData()
   }, [])
+
+  const loadChartData = async () => {
+    setLoadingCharts(true)
+    try {
+      // Load revenue by plan
+      const revenueByPlanData = await subscriptionAPI.getRevenueByPlan()
+      const transformedRevenueData = Array.isArray(revenueByPlanData) 
+        ? revenueByPlanData.map((item: any) => ({
+            plan: item._id?.planName || item.plan || 'Unknown',
+            revenue: item.totalRevenue || item.revenue || 0,
+            count: item.subscriptionCount || item.count || 0
+          }))
+        : []
+      setRevenueByPlan(transformedRevenueData)
+
+      // Load user growth data (last 30 days)
+      const userStatsResponse = await adminApiService.getUsersOverTime('daily', 30)
+      const userData = userStatsResponse?.data || []
+      const transformedUserData = Array.isArray(userData)
+        ? userData.map((item: any) => ({
+            date: dayjs(item.date).format('DD/MM'),
+            users: item.totalUsers || item.newUsers || 0,
+            newUsers: item.newUsers || 0
+          }))
+        : []
+      setUserGrowth(transformedUserData)
+    } catch (error) {
+      console.error('Error loading chart data:', error)
+      setRevenueByPlan([])
+      setUserGrowth([])
+    } finally {
+      setLoadingCharts(false)
+    }
+  }
 
   const loadDashboardData = async () => {
     try {
@@ -86,12 +122,6 @@ const AdminDashboard: React.FC = () => {
         totalRevenue,
         activeUsers
       })
-
-      // TODO: Get real monthly revenue data from subscriptionAPI.getRevenueOverTime()
-      setMonthlyData([])
-
-      // TODO: Get real recent activities from backend
-      setRecentActivities([])
     } catch (error) {
       console.error('Error loading dashboard data:', error)
       // Set safe defaults on error
@@ -100,7 +130,6 @@ const AdminDashboard: React.FC = () => {
         totalRevenue: 0,
         activeUsers: 0
       })
-      setRecentActivities([])
     }
   }
 
@@ -134,21 +163,6 @@ const AdminDashboard: React.FC = () => {
       setRevenueTotals({ totalRevenue: 0 })
     } finally {
       setLoadingAnalytics(false)
-    }
-  }
-
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'expense':
-        return <DollarOutlined style={{ color: '#1890ff' }} />
-      case 'register':
-        return <UserOutlined style={{ color: '#52c41a' }} />
-      case 'warning':
-        return <BellOutlined style={{ color: '#faad14' }} />
-      case 'payment':
-        return <DollarOutlined style={{ color: '#722ed1' }} />
-      default:
-        return <CheckCircleOutlined />
     }
   }
 
@@ -242,8 +256,8 @@ const AdminDashboard: React.FC = () => {
             <Card hoverable>
               <Spin spinning={isLoadingAiStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
                 <Statistic
-                  title="Tổng yêu cầu AI"
-                  value={aiStats?.totalRequests || 0}
+                  title="Tổng tin nhắn AI"
+                  value={aiStats?.totalMessages || 0}
                   prefix={<RobotOutlined />}
                   valueStyle={{ color: '#8B5CF6' }}
                 />
@@ -254,7 +268,7 @@ const AdminDashboard: React.FC = () => {
             <Card hoverable>
               <Spin spinning={isLoadingAiStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
                 <Statistic
-                  title="Người dùng dùng AI"
+                  title="Tổng người dùng AI"
                   value={aiStats?.totalUsers || 0}
                   prefix={<UserOutlined />}
                   valueStyle={{ color: '#6366F1' }}
@@ -313,79 +327,101 @@ const AdminDashboard: React.FC = () => {
         </Row>
       </Card>
 
-      {/* Charts */}
+      {/* Charts Section */}
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        <Col xs={24} lg={16}>
-          <Card title="Thống kê theo tháng">
+        {/* Blog Status Chart */}
+        <Col xs={24} lg={8}>
+          <Card title="Thống kê Blog theo trạng thái" loading={loadingAnalytics}>
             <div style={{ width: '100%', height: 300, minHeight: 300 }}>
-              {monthlyData.length > 0 ? (
+              {Object.keys(blogStats).length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="revenue" stroke="#82ca9d" name="Doanh thu" />
-              </LineChart>
-            </ResponsiveContainer>              ) : (
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Đã duyệt', value: blogStats.published || 0, color: '#52c41a' },
+                        { name: 'Chờ duyệt', value: blogStats.pending || 0, color: '#faad14' },
+                        { name: 'Nháp', value: blogStats.draft || 0, color: '#1890ff' },
+                        { name: 'Từ chối', value: blogStats.rejected || 0, color: '#ff4d4f' }
+                      ].filter(item => item.value > 0)}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {[
+                        { name: 'Đã duyệt', value: blogStats.published || 0, color: '#52c41a' },
+                        { name: 'Chờ duyệt', value: blogStats.pending || 0, color: '#faad14' },
+                        { name: 'Nháp', value: blogStats.draft || 0, color: '#1890ff' },
+                        { name: 'Từ chối', value: blogStats.rejected || 0, color: '#ff4d4f' }
+                      ].filter(item => item.value > 0).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
                 <div style={{ textAlign: 'center', padding: '80px 0' }}>
-                  <Text type="secondary">Chưa có dữ liệu thống kê</Text>
+                  <Text type="secondary">Chưa có dữ liệu blog</Text>
                 </div>
               )}
-            </div>          </Card>
-        </Col>
-        <Col xs={24} lg={8}>
-          <Card title="Thông báo nhanh">
-            <List
-              dataSource={[
-                // TODO: Replace with real data from backend
-                // { title: 'Người dùng mới', count: newUsersCount, status: 'processing' },
-                // { title: 'Yêu cầu hỗ trợ', count: supportRequestsCount, status: 'error' },
-                // { title: 'Báo cáo chờ duyệt', count: pendingReportsCount, status: 'default' }
-              ]}
-              locale={{ emptyText: 'Chưa có thông báo' }}
-              renderItem={(item: any) => (
-                <List.Item>
-                  <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                    <Text>{item.title}</Text>
-                    <Tag color={item.status}>{item.count}</Tag>
-                  </Space>
-                </List.Item>
-              )}
-            />
+            </div>
           </Card>
         </Col>
-      </Row>
 
-      {/* Recent Activities */}
-      <Row gutter={[16, 16]}>
-        <Col xs={24}>
-          <Card title="Hoạt động gần đây">
-            {recentActivities.length > 0 ? (
-              <List
-                dataSource={recentActivities}
-                renderItem={(item) => (
-                  <List.Item>
-                    <List.Item.Meta
-                      avatar={<Avatar icon={getActivityIcon(item.type)} />}
-                      title={
-                        <Space>
-                          <Text strong>{item.user}</Text>
-                          <Text type="secondary">{item.action}</Text>
-                          {item.amount && <Text type="success">{item.amount}</Text>}
-                        </Space>
-                      }
-                      description={item.time}
+        {/* Revenue by Plan Chart */}
+        <Col xs={24} lg={8}>
+          <Card title="Doanh thu theo gói Subscription" loading={loadingCharts}>
+            <div style={{ width: '100%', height: 300, minHeight: 300 }}>
+              {revenueByPlan.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={revenueByPlan}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="plan" />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value: any) => `${Number(value).toLocaleString()}đ`}
                     />
-                  </List.Item>
-                )}
-              />
-            ) : (
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <Text type="secondary">Chưa có hoạt động gần đây</Text>
-              </div>
-            )}
+                    <Legend />
+                    <Bar dataKey="revenue" fill="#722ed1" name="Doanh thu" />
+                    <Bar dataKey="count" fill="#1890ff" name="Số lượng" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '80px 0' }}>
+                  <Text type="secondary">Chưa có dữ liệu doanh thu</Text>
+                </div>
+              )}
+            </div>
+          </Card>
+        </Col>
+
+        {/* User Growth Chart */}
+        <Col xs={24} lg={8}>
+          <Card title="Tăng trưởng người dùng (30 ngày)" loading={loadingCharts}>
+            <div style={{ width: '100%', height: 300, minHeight: 300 }}>
+              {userGrowth.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={userGrowth}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="users" stroke="#1890ff" name="Tổng người dùng" strokeWidth={2} />
+                    <Line type="monotone" dataKey="newUsers" stroke="#52c41a" name="Người dùng mới" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '80px 0' }}>
+                  <Text type="secondary">Chưa có dữ liệu người dùng</Text>
+                </div>
+              )}
+            </div>
           </Card>
         </Col>
       </Row>

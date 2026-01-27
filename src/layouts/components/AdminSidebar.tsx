@@ -139,12 +139,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ collapsed }) => {
       label: 'Profile',
       onClick: () => navigate('/admin/profile'),
     },
-    {
-      key: '/admin/settings',
-      icon: <SettingOutlined />,
-      label: 'Account Settings',
-      onClick: () => navigate('/admin/settings'),
-    },
   ]
 
   return (

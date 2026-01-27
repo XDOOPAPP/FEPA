@@ -10,7 +10,6 @@ import AdminLayout from './layouts/AdminLayout/AdminLayout'
 import LoginPage from './pages/auth/LoginPage'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ProfilePage from './pages/profile/ProfilePage'
-import SettingsPage from './pages/settings/SettingsPage'
 import ClearStorage from './pages/ClearStorage'
 import { LoadingOverlay } from './components/LoadingOverlay'
 import { initializeSocket, disconnectSocket } from './services/socket'
@@ -255,17 +254,6 @@ function App() {
                 <AdminRoute>
                   <AdminLayout>
                     <ProfilePage />
-                  </AdminLayout>
-                </AdminRoute>
-              } 
-            />
-            
-            <Route 
-              path="/admin/settings" 
-              element={
-                <AdminRoute>
-                  <AdminLayout>
-                    <SettingsPage />
                   </AdminLayout>
                 </AdminRoute>
               } 
