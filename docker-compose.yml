@@ -8,8 +8,10 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: 'http://76.13.21.84:3000/api/v1'
-        VITE_SOCKET_URL: 'http://76.13.21.84:3102'
+        # Quan trọng: Dùng đường dẫn tương đối để Nginx lo liệu
+        VITE_API_BASE_URL: '/api/v1'
+        # Socket kết nối vào chính domain này (qua Nginx), không gọi IP lẻ nữa
+        VITE_SOCKET_URL: '/'
     ports:
       - "80:80"
     environment:
@@ -26,11 +28,7 @@ services:
     labels:
       - "com.example.description=FEPA Web Admin Frontend"
       - "com.example.version=1.0"
-    # Optional: Volume for logs
-    # volumes:
-    #   - ./logs:/var/log/nginx
 
 networks:
   fepa-network:
-    driver: bridge
-    name: fepa-network
+    external: true
