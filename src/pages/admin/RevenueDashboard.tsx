@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContai
 import { BarChart } from 'recharts/es6/chart/BarChart'
 import { Bar } from 'recharts/es6/cartesian/Bar'
 import subscriptionAPI, { type RevenuePoint, type RevenueByPlanItem } from '../../services/api/subscriptionAPI'
-import { LoadingOverlay } from '../../components/LoadingOverlay'
+import { LoadingOverlay } from '../../components/common/LoadingOverlay'
 import { exportToCSV } from '../../utils/exportUtils'
 
 export default function RevenueDashboard() {

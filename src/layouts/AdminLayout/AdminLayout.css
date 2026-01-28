@@ -1,17 +1,103 @@
+/* ===== Admin Layout ===== */
 .admin-layout {
   display: flex;
+  min-height: 100vh;
+  background: var(--bg-base);
 }
 
-.admin-layout .ant-layout {
+.admin-main-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   margin-left: 200px;
-  transition: margin-left 0.2s;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.admin-layout .ant-layout-sider-collapsed ~ .ant-layout {
+.admin-layout.sidebar-collapsed .admin-main-layout {
   margin-left: 80px;
 }
 
+/* ===== Admin Header ===== */
+.admin-header {
+  background: white;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 64px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--border-light);
+  position: sticky;
+  top: 0;
+  z-index: 99;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-header-toggle {
+  font-size: 18px !important;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+  border-radius: var(--radius-sm);
+}
+
+.admin-header-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--primary);
+}
+
+.admin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ===== Admin Content ===== */
 .admin-content {
+  flex: 1;
   padding: 24px;
   background: var(--bg-base);
+  overflow-y: auto;
+}
+
+.admin-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-content::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.2);
+  border-radius: 4px;
+}
+
+.admin-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.3);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 992px) {
+  .admin-main-layout {
+    margin-left: 80px;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-main-layout {
+    margin-left: 0;
+  }
+  
+  .admin-header {
+    padding: 0 16px;
+  }
+  
+  .admin-content {
+    padding: 16px;
+  }
 }

@@ -1,4 +1,8 @@
-// Type definitions
+/**
+ * Central Export Point for All Types
+ */
+
+// ========== Auth & User Types ==========
 export interface User {
   id: string;
   email: string;
@@ -15,10 +19,13 @@ export interface AuthContextType {
   logout: () => void;
   loading: boolean;
   updateProfile?: (data: Partial<User>) => void;
-  // changePassword removed for admin UI
 }
 
-// Export blog types
+// ========== Feature Types ==========
 export * from './blog'
-export * from './blog';
-export * from './notification';
+export * from './notification'
+export * from './user'
+export * from './subscription'
+export * from './payment'
+export * from './analytics'
+export * from './category'

@@ -4,7 +4,7 @@ import { CrownOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CheckCircleO
 import type { ColumnsType } from 'antd/es/table'
 import { useGetPlans, useCreatePlan, useUpdatePlan, useDeletePlan, useHealthCheck } from '../../services/queries'
 import type { SubscriptionPlan as APIPlan } from '../../services/api/subscriptionAPI'
-import SubscriptionStats from '../../components/SubscriptionStats'
+import SubscriptionStats from '../../components/features/SubscriptionStats'
 
 interface SubscriptionPlan extends APIPlan {
   id: string // Alias cho _id

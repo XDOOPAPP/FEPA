@@ -7,17 +7,6 @@ export interface LoginRequest {
   password: string
 }
 
-export interface RegisterRequest {
-  email: string
-  password: string
-  fullName: string  // Backend dùng fullName thay vì firstName/lastName
-}
-
-export interface VerifyOtpRequest {
-  email: string
-  otp: string
-}
-
 export interface ForgotPasswordRequest {
   email: string
 }
@@ -28,98 +17,59 @@ export interface ResetPasswordRequest {
   newPassword: string
 }
 
-// changePassword request type removed
-
-// ========== RESPONSE TYPES ==========
-export interface AuthResponse {
-  success: boolean
-  message: string
-  data: {
-    accessToken: string
-    refreshToken: string
-    user: {
-      id: string
-      email: string
-      fullName: string
-      isVerified: boolean
-    }
-  }
-}
-
-// ========== API FUNCTIONS ==========
+// ========== API SERVICE ==========
 const authAPI = {
   /**
    * Đăng nhập - POST /auth/login
-   * Trả về accessToken, refreshToken và thông tin user
    */
-  login: async (data: LoginRequest): Promise<AuthResponse> => {
+  login: async (data: LoginRequest) => {
     console.log('🔐 Calling login API with:', { email: data.email })
-    const res = await axiosInstance.post<AuthResponse>(API_CONFIG.AUTH.LOGIN, data)
-    console.log('🔐 Login API raw response:', res)
+    const res = await axiosInstance.post(API_CONFIG.AUTH.LOGIN, data)
+    console.log('🔐 Login API response:', res)
     return res
   },
 
   /**
-   * Đăng ký - POST /auth/register
-   * Backend sẽ tự động gửi OTP qua email
+   * Lấy thông tin user hiện tại
    */
-  register: async (data: RegisterRequest): Promise<any> => {
-    return axiosInstance.post(API_CONFIG.AUTH.REGISTER, data)
+  getCurrentUser: async () => {
+    return await axiosInstance.get(API_CONFIG.AUTH.GET_USER)
   },
 
   /**
-   * Xác thực OTP sau khi đăng ký - POST /auth/verify-otp
+   * Quên mật khẩu - gửi OTP
    */
-  verifyOtp: async (data: VerifyOtpRequest): Promise<any> => {
-    return axiosInstance.post(API_CONFIG.AUTH.VERIFY_OTP, data)
+  forgotPassword: async (data: ForgotPasswordRequest) => {
+    return await axiosInstance.post(API_CONFIG.AUTH.FORGOT_PASSWORD, data)
   },
 
   /**
-   * Gửi OTP để reset password - POST /auth/forgot-password
+   * Đặt lại mật khẩu
    */
-  forgotPassword: async (data: ForgotPasswordRequest): Promise<any> => {
-    return axiosInstance.post(API_CONFIG.AUTH.FORGOT_PASSWORD, data)
+  resetPassword: async (data: ResetPasswordRequest) => {
+    return await axiosInstance.post(API_CONFIG.AUTH.RESET_PASSWORD, data)
   },
 
   /**
-   * Reset password với OTP - POST /auth/reset-password
+   * Verify token
    */
-  resetPassword: async (data: ResetPasswordRequest): Promise<any> => {
-    return axiosInstance.post(API_CONFIG.AUTH.RESET_PASSWORD, data)
-  },
-
-  // changePassword removed for admin UI - not used
-
-  /**
-   * Verify token - POST /auth/verify
-   */
-  verifyToken: async (): Promise<any> => {
-    return axiosInstance.post(API_CONFIG.AUTH.VERIFY)
+  verifyToken: async () => {
+    return await axiosInstance.post('/auth/verify')
   },
 
   /**
-   * Lấy thông tin user hiện tại - GET /auth/me
-   * Timeout 30s vì endpoint này có thể chậm
+   * Logout
    */
-  getCurrentUser: async (): Promise<any> => {
-    return axiosInstance.get(API_CONFIG.AUTH.ME, {
-      timeout: 30000, // 30 seconds timeout
-    })
+  logout: async () => {
+    return await axiosInstance.post('/auth/logout')
   },
 
   /**
-   * Refresh token - POST /auth/refresh
+   * Register
    */
-  refreshToken: async (refreshToken: string): Promise<any> => {
-    return axiosInstance.post('/auth/refresh', { refreshToken })
-  },
-
-  /**
-   * Health check - GET /auth/health
-   */
-  healthCheck: async (): Promise<any> => {
-    return axiosInstance.get('/auth/health')
-  },
+  register: async (data: any) => {
+    return await axiosInstance.post(API_CONFIG.AUTH.REGISTER, data)
+  }
 }
 
 export default authAPI

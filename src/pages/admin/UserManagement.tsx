@@ -3,9 +3,9 @@ import { Card, Table, Button, Space, Modal, Form, Input, Select, Tag, message, P
 import { UserOutlined, PlusOutlined, EditOutlined, DeleteOutlined, LockOutlined, UnlockOutlined, KeyOutlined, MoreOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { useBulkActions } from '../../hooks/useBulkActions'
-import { BulkActionsBar, commonBulkActions } from '../../components/BulkActionsBar'
+import { BulkActionsBar, commonBulkActions } from '../../components/admin/BulkActionsBar'
 import { exportToCSV } from '../../utils/exportUtils'
-import { SkeletonTable } from '../../components/SkeletonLoader'
+import { SkeletonTable } from '../../components/common/SkeletonLoader'
 import userAPI from '../../services/api/userAPI'
 
 const { Title } = Typography

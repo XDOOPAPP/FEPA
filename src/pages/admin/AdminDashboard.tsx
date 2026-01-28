@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, Row, Col, Statistic, Tag, Space, Typography, List, Avatar, Spin } from 'antd'
+import { Card, Row, Col, Typography, List, Avatar, Spin } from 'antd'
 import {
   UserOutlined,
   DollarOutlined,
@@ -14,15 +14,18 @@ import {
   ScanOutlined,
   RobotOutlined
 } from '@ant-design/icons'
-import { PieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import dayjs from 'dayjs'
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import subscriptionAPI from '../../services/api/subscriptionAPI'
 import { useGetExpenseAdminStats, useGetBudgetAdminStats, useGetOcrAdminStats, useGetAiAdminStats } from '../../services/queries'
 import blogAPI from '../../services/api/blogAPI'
 import adminApiService from '../../services/api/adminApiService'
-import { AuthDebugPanel } from '../../components/AuthDebugPanel'
+import './AdminDashboard.css'
 
 const { Title, Text } = Typography
+
+const loadingIndicator = <LoadingOutlined style={{ fontSize: 20 }} />
+
+const formatNumber = (value?: number) => Number(value || 0).toLocaleString('vi-VN')
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate()
@@ -35,19 +38,11 @@ const AdminDashboard: React.FC = () => {
   const [revenueTotals, setRevenueTotals] = useState<{ totalRevenue: number; activeSubscriptions?: number; totalSubscriptions?: number; cancelledSubscriptions?: number }>({ totalRevenue: 0 })
   const [loadingAnalytics, setLoadingAnalytics] = useState(false)
   const [revenueByPlan, setRevenueByPlan] = useState<any[]>([])
-  const [userGrowth, setUserGrowth] = useState<any[]>([])
   const [loadingCharts, setLoadingCharts] = useState(false)
 
-  // Fetch expense stats
   const { data: expenseStats, isLoading: isLoadingExpenseStats } = useGetExpenseAdminStats()
-  
-  // Fetch budget stats
   const { data: budgetStats, isLoading: isLoadingBudgetStats } = useGetBudgetAdminStats()
-  
-  // Fetch OCR stats
   const { data: ocrStats, isLoading: isLoadingOcrStats } = useGetOcrAdminStats()
-  
-  // Fetch AI stats
   const { data: aiStats, isLoading: isLoadingAiStats } = useGetAiAdminStats()
 
   useEffect(() => {
@@ -59,9 +54,8 @@ const AdminDashboard: React.FC = () => {
   const loadChartData = async () => {
     setLoadingCharts(true)
     try {
-      // Load revenue by plan
       const revenueByPlanData = await subscriptionAPI.getRevenueByPlan()
-      const transformedRevenueData = Array.isArray(revenueByPlanData) 
+      const transformedRevenueData = Array.isArray(revenueByPlanData)
         ? revenueByPlanData.map((item: any) => ({
             plan: item._id?.planName || item.plan || 'Unknown',
             revenue: item.totalRevenue || item.revenue || 0,
@@ -69,22 +63,9 @@ const AdminDashboard: React.FC = () => {
           }))
         : []
       setRevenueByPlan(transformedRevenueData)
-
-      // Load user growth data (last 30 days)
-      const userStatsResponse = await adminApiService.getUsersOverTime('daily', 30)
-      const userData = userStatsResponse?.data || []
-      const transformedUserData = Array.isArray(userData)
-        ? userData.map((item: any) => ({
-            date: dayjs(item.date).format('DD/MM'),
-            users: item.totalUsers || item.newUsers || 0,
-            newUsers: item.newUsers || 0
-          }))
-        : []
-      setUserGrowth(transformedUserData)
     } catch (error) {
       console.error('Error loading chart data:', error)
       setRevenueByPlan([])
-      setUserGrowth([])
     } finally {
       setLoadingCharts(false)
     }
@@ -96,7 +77,6 @@ const AdminDashboard: React.FC = () => {
       let activeUsers = 0
       let totalRevenue = 0
 
-      // Fetch user stats from auth service
       try {
         const userStatsResponse = await adminApiService.getUserStats()
         const userStats: any = userStatsResponse?.data || userStatsResponse || {}
@@ -106,7 +86,6 @@ const AdminDashboard: React.FC = () => {
         console.error('Failed to load user stats:', error)
       }
 
-      // Fetch revenue stats from subscription service
       try {
         const response = await subscriptionAPI.getRevenueTotals()
         if (response) {
@@ -124,7 +103,6 @@ const AdminDashboard: React.FC = () => {
       })
     } catch (error) {
       console.error('Error loading dashboard data:', error)
-      // Set safe defaults on error
       setStats({
         totalUsers: 0,
         totalRevenue: 0,
@@ -138,10 +116,9 @@ const AdminDashboard: React.FC = () => {
     try {
       const [blogResponse, revenueResponse] = await Promise.allSettled([
         blogAPI.getStatusStats(),
-        subscriptionAPI.getRevenueTotals(),
+        subscriptionAPI.getRevenueTotals()
       ])
 
-      // Handle blog stats with proper error handling
       if (blogResponse.status === 'fulfilled' && blogResponse.value) {
         setBlogStats(blogResponse.value || {})
       } else {
@@ -149,7 +126,6 @@ const AdminDashboard: React.FC = () => {
         setBlogStats({})
       }
 
-      // Handle revenue stats with proper error handling
       if (revenueResponse.status === 'fulfilled' && revenueResponse.value) {
         const revenueData: any = revenueResponse.value?.data || revenueResponse.value || { totalRevenue: 0 }
         setRevenueTotals(revenueData)
@@ -166,262 +142,303 @@ const AdminDashboard: React.FC = () => {
     }
   }
 
+  const blogTotal =
+    (blogStats.pending || 0) +
+    (blogStats.published || 0) +
+    (blogStats.rejected || 0) +
+    (blogStats.draft || 0)
+
+  const activeRate = stats.totalUsers
+    ? Math.round((stats.activeUsers / Math.max(stats.totalUsers, 1)) * 100)
+    : 0
+
+  const kpiCards = [
+    {
+      key: 'users',
+      title: 'Tổng người dùng',
+      value: formatNumber(stats.totalUsers),
+      hint: `${formatNumber(stats.activeUsers)} đang hoạt động (${activeRate}% hoạt động)`,
+      icon: <TeamOutlined />,
+      tone: 'primary'
+    },
+    {
+      key: 'revenue',
+      title: 'Tổng doanh thu',
+      value: `${formatNumber(stats.totalRevenue)} đ`,
+      hint: `${formatNumber(revenueTotals.activeSubscriptions || 0)} gói đang hoạt động`,
+      icon: <DollarOutlined />,
+      tone: 'purple'
+    },
+    {
+      key: 'blogs',
+      title: 'Blog chờ duyệt',
+      value: formatNumber(blogStats.pending || 0),
+      hint: `Tổng bài: ${formatNumber(blogTotal)}`,
+      icon: <BellOutlined />,
+      tone: 'amber',
+      onClick: () => navigate('/admin/blogs/pending')
+    },
+    {
+      key: 'ai',
+      title: 'Tương tác AI',
+      value: formatNumber(aiStats?.totalMessages || 0),
+      hint: `${formatNumber(aiStats?.totalUsers || 0)} người dùng AI`,
+      icon: <RobotOutlined />,
+      tone: 'teal'
+    }
+  ]
+
+  const systemStats = [
+    {
+      key: 'expense-users',
+      title: 'Số người dùng có chi tiêu',
+      value: expenseStats?.totalUsers || 0,
+      icon: <TeamOutlined />,
+      color: '#1890ff',
+      loading: isLoadingExpenseStats
+    },
+    {
+      key: 'budget-users',
+      title: 'Số người dùng có ngân sách',
+      value: budgetStats?.totalUsers || 0,
+      icon: <TeamOutlined />,
+      color: '#722ed1',
+      loading: isLoadingBudgetStats
+    },
+    {
+      key: 'total-expenses',
+      title: 'Tổng số chi tiêu',
+      value: expenseStats?.totalExpenses || 0,
+      icon: <ShoppingOutlined />,
+      color: '#52c41a',
+      loading: isLoadingExpenseStats
+    },
+    {
+      key: 'total-budgets',
+      title: 'Tổng số ngân sách',
+      value: budgetStats?.totalBudgets || 0,
+      icon: <PieChartOutlined />,
+      color: '#faad14',
+      loading: isLoadingBudgetStats
+    },
+    {
+      key: 'ocr-jobs',
+      title: 'Tổng số lượt quét OCR',
+      value: ocrStats?.totalJobs || 0,
+      icon: <ScanOutlined />,
+      color: '#13c2c2',
+      loading: isLoadingOcrStats
+    },
+    {
+      key: 'ocr-users',
+      title: 'Số người dùng dùng OCR',
+      value: ocrStats?.totalUsers || 0,
+      icon: <CameraOutlined />,
+      color: '#eb2f96',
+      loading: isLoadingOcrStats
+    },
+    {
+      key: 'ai-messages',
+      title: 'Tổng tin nhắn AI',
+      value: aiStats?.totalMessages || 0,
+      icon: <RobotOutlined />,
+      color: '#8B5CF6',
+      loading: isLoadingAiStats
+    },
+    {
+      key: 'ai-users',
+      title: 'Tổng người dùng AI',
+      value: aiStats?.totalUsers || 0,
+      icon: <UserOutlined />,
+      color: '#6366F1',
+      loading: isLoadingAiStats
+    }
+  ]
+
+  const quickSignals = [
+    {
+      key: 'activity-rate',
+      title: 'Tỷ lệ người dùng hoạt động',
+      value: `${activeRate}%`,
+      description: `${formatNumber(stats.activeUsers)} / ${formatNumber(stats.totalUsers)} người dùng`,
+      icon: <UserOutlined />,
+      color: '#0EA5E9'
+    },
+    {
+      key: 'blogs-pending',
+      title: 'Blog chờ duyệt',
+      value: formatNumber(blogStats.pending || 0),
+      description: 'Mở danh sách bài cần kiểm duyệt',
+      icon: <BellOutlined />,
+      color: '#F59E0B',
+      onClick: () => navigate('/admin/blogs/pending')
+    },
+    {
+      key: 'revenue-total',
+      title: 'Tổng doanh thu',
+      value: `${formatNumber(stats.totalRevenue)} đ`,
+      description: `${formatNumber(revenueTotals.activeSubscriptions || 0)} gói đang hoạt động`,
+      icon: <DollarOutlined />,
+      color: '#722ed1'
+    },
+    {
+      key: 'ai-ocr',
+      title: 'OCR & AI đang chạy',
+      value: `${formatNumber(ocrStats?.totalJobs || 0)} / ${formatNumber(aiStats?.totalMessages || 0)}`,
+      description: `${formatNumber(aiStats?.totalUsers || 0)} người dùng AI`,
+      icon: <CheckCircleOutlined />,
+      color: '#10B981'
+    }
+  ]
+
+  const blogDataAvailable = Object.values(blogStats).some(value => Boolean(value))
+
   return (
-    <div style={{ padding: '24px' }}>
-      <Title level={2}>Admin Dashboard</Title>
-
-      {/* Auth Debug Panel - Only visible in development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{ marginBottom: 24 }}>
-          <AuthDebugPanel compact />
+    <div className="dashboard-shell">
+      <div className="dashboard-header">
+        <div className="dashboard-title">
+          <Title level={2} className="dashboard-heading">Admin Dashboard</Title>
+          <Text type="secondary">Ảnh tổng quan realtime các dịch vụ FEPA.</Text>
         </div>
-      )}
+        <div className="kpi-grid">
+          {kpiCards.map(card => (
+            <Card
+              key={card.key}
+              className={`kpi-card kpi-${card.tone}`}
+              bordered={false}
+              onClick={card.onClick}
+              hoverable={Boolean(card.onClick)}
+            >
+              <div className="kpi-icon">{card.icon}</div>
+              <div className="kpi-meta">
+                <Text className="kpi-label">{card.title}</Text>
+                <div className="kpi-value">{card.value}</div>
+                {card.hint && <Text className="kpi-hint">{card.hint}</Text>}
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
 
-      {/* User Statistics Cards */}
-      <Card title="Thống kê Hệ thống" style={{ marginBottom: '24px' }}>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} md={6}>
-            <Card hoverable>
-              <Spin spinning={isLoadingExpenseStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
-                <Statistic
-                  title="Số người dùng có chi tiêu"
-                  value={expenseStats?.totalUsers || 0}
-                  prefix={<TeamOutlined />}
-                  valueStyle={{ color: '#1890ff' }}
-                />
-              </Spin>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card hoverable>
-              <Spin spinning={isLoadingBudgetStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
-                <Statistic
-                  title="Số người dùng có ngân sách"
-                  value={budgetStats?.totalUsers || 0}
-                  prefix={<TeamOutlined />}
-                  valueStyle={{ color: '#722ed1' }}
-                />
-              </Spin>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card hoverable>
-              <Spin spinning={isLoadingExpenseStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
-                <Statistic
-                  title="Tổng số chi tiêu"
-                  value={expenseStats?.totalExpenses || 0}
-                  prefix={<ShoppingOutlined />}
-                  valueStyle={{ color: '#52c41a' }}
-                />
-              </Spin>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card hoverable>
-              <Spin spinning={isLoadingBudgetStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
-                <Statistic
-                  title="Tổng số ngân sách"
-                  value={budgetStats?.totalBudgets || 0}
-                  prefix={<PieChartOutlined />}
-                  valueStyle={{ color: '#faad14' }}
-                />
-              </Spin>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card hoverable>
-              <Spin spinning={isLoadingOcrStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
-                <Statistic
-                  title="Tổng số lượt quét OCR"
-                  value={ocrStats?.totalJobs || 0}
-                  prefix={<ScanOutlined />}
-                  valueStyle={{ color: '#13c2c2' }}
-                />
-              </Spin>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card hoverable>
-              <Spin spinning={isLoadingOcrStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
-                <Statistic
-                  title="Số người dùng dùng OCR"
-                  value={ocrStats?.totalUsers || 0}
-                  prefix={<CameraOutlined />}
-                  valueStyle={{ color: '#eb2f96' }}
-                />
-              </Spin>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card hoverable>
-              <Spin spinning={isLoadingAiStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
-                <Statistic
-                  title="Tổng tin nhắn AI"
-                  value={aiStats?.totalMessages || 0}
-                  prefix={<RobotOutlined />}
-                  valueStyle={{ color: '#8B5CF6' }}
-                />
-              </Spin>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Card hoverable>
-              <Spin spinning={isLoadingAiStats} indicator={<LoadingOutlined style={{ fontSize: 24 }} />}>
-                <Statistic
-                  title="Tổng người dùng AI"
-                  value={aiStats?.totalUsers || 0}
-                  prefix={<UserOutlined />}
-                  valueStyle={{ color: '#6366F1' }}
-                />
-              </Spin>
-            </Card>
-          </Col>
-        </Row>
-      </Card>
-
-      {/* Core System Statistics */}
-      <Card title="Thống kê hệ thống chính" style={{ marginBottom: '24px' }}>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} lg={6}>
-            <Card hoverable>
-              <Statistic
-                title="Tổng người dùng"
-                value={stats.totalUsers}
-                prefix={<TeamOutlined />}
-                valueStyle={{ color: '#3f8600' }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card hoverable>
-              <Statistic
-                title="Người dùng hoạt động"
-                value={stats.activeUsers}
-                prefix={<UserOutlined />}
-                valueStyle={{ color: '#1890ff' }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card hoverable>
-              <Statistic
-                title="Tổng doanh thu"
-                value={stats.totalRevenue}
-                prefix={<DollarOutlined />}
-                suffix="đ"
-                valueStyle={{ color: '#722ed1' }}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card hoverable loading={loadingAnalytics} onClick={() => navigate('/admin/blogs/pending')}>
-              <Statistic
-                title="Blog chờ duyệt"
-                value={blogStats.pending || 0}
-                prefix={<BellOutlined />}
-                valueStyle={{ color: '#F59E0B' }}
-              />
-              <Tag color="blue" style={{ marginTop: 8 }}>Tổng: {(blogStats.pending || 0) + (blogStats.published || 0) + (blogStats.rejected || 0) + (blogStats.draft || 0)}</Tag>
-            </Card>
-          </Col>
-        </Row>
-      </Card>
-
-      {/* Charts Section */}
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
-        {/* Blog Status Chart */}
-        <Col xs={24} lg={8}>
-          <Card title="Thống kê Blog theo trạng thái" loading={loadingAnalytics}>
-            <div style={{ width: '100%', height: 300, minHeight: 300 }}>
-              {Object.keys(blogStats).length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: 'Đã duyệt', value: blogStats.published || 0, color: '#52c41a' },
-                        { name: 'Chờ duyệt', value: blogStats.pending || 0, color: '#faad14' },
-                        { name: 'Nháp', value: blogStats.draft || 0, color: '#1890ff' },
-                        { name: 'Từ chối', value: blogStats.rejected || 0, color: '#ff4d4f' }
-                      ].filter(item => item.value > 0)}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {[
-                        { name: 'Đã duyệt', value: blogStats.published || 0, color: '#52c41a' },
-                        { name: 'Chờ duyệt', value: blogStats.pending || 0, color: '#faad14' },
-                        { name: 'Nháp', value: blogStats.draft || 0, color: '#1890ff' },
-                        { name: 'Từ chối', value: blogStats.rejected || 0, color: '#ff4d4f' }
-                      ].filter(item => item.value > 0).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '80px 0' }}>
-                  <Text type="secondary">Chưa có dữ liệu blog</Text>
-                </div>
-              )}
+      <Row gutter={[16, 16]}>
+        <Col xs={24} xl={16}>
+          <Card title="Thống kê Hệ thống" className="section-card">
+            <div className="stat-grid">
+              {systemStats.map(item => (
+                <Card key={item.key} size="small" className="stat-card" bodyStyle={{ padding: 16 }}>
+                  <Spin spinning={item.loading} indicator={loadingIndicator}>
+                    <div className="stat-card__top">
+                      <Text className="stat-card__title">{item.title}</Text>
+                      <div className="stat-card__icon" style={{ color: item.color }}>
+                        {item.icon}
+                      </div>
+                    </div>
+                    <div className="stat-card__value" style={{ color: item.color }}>
+                      {formatNumber(item.value)}
+                    </div>
+                    {item.extra && <Text type="secondary">{item.extra}</Text>}
+                  </Spin>
+                </Card>
+              ))}
             </div>
           </Card>
+
+          <div className="chart-grid">
+            <Card title="Thống kê Blog theo trạng thái" loading={loadingAnalytics} className="section-card">
+              <div className="chart-shell">
+                {blogDataAvailable ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Đã duyệt', value: blogStats.published || 0, color: '#52c41a' },
+                          { name: 'Chờ duyệt', value: blogStats.pending || 0, color: '#faad14' },
+                          { name: 'Nháp', value: blogStats.draft || 0, color: '#1890ff' },
+                          { name: 'Từ chối', value: blogStats.rejected || 0, color: '#ff4d4f' }
+                        ].filter(item => item.value > 0)}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={85}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {[
+                          { name: 'Đã duyệt', value: blogStats.published || 0, color: '#52c41a' },
+                          { name: 'Chờ duyệt', value: blogStats.pending || 0, color: '#faad14' },
+                          { name: 'Nháp', value: blogStats.draft || 0, color: '#1890ff' },
+                          { name: 'Từ chối', value: blogStats.rejected || 0, color: '#ff4d4f' }
+                        ]
+                          .filter(item => item.value > 0)
+                          .map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="chart-empty">
+                    <Text type="secondary">Chưa có dữ liệu blog</Text>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            <Card title="Doanh thu theo gói Subscription" loading={loadingCharts} className="section-card">
+              <div className="chart-shell">
+                {revenueByPlan.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={revenueByPlan}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="plan" />
+                      <YAxis />
+                      <Tooltip
+                        formatter={(value: any, name: string, props: any) => {
+                          const key = props?.dataKey
+                          if (key === 'revenue') {
+                            return [`${Number(value).toLocaleString()}đ`, 'Doanh thu']
+                          }
+                          return [Number(value).toLocaleString(), name]
+                        }}
+                      />
+                      <Legend />
+                      <Bar dataKey="revenue" fill="#722ed1" name="Doanh thu" />
+                      <Bar dataKey="count" fill="#1890ff" name="Số lượng" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="chart-empty">
+                    <Text type="secondary">Chưa có dữ liệu doanh thu</Text>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
         </Col>
 
-        {/* Revenue by Plan Chart */}
-        <Col xs={24} lg={8}>
-          <Card title="Doanh thu theo gói Subscription" loading={loadingCharts}>
-            <div style={{ width: '100%', height: 300, minHeight: 300 }}>
-              {revenueByPlan.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={revenueByPlan}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="plan" />
-                    <YAxis />
-                    <Tooltip 
-                      formatter={(value: any) => `${Number(value).toLocaleString()}đ`}
-                    />
-                    <Legend />
-                    <Bar dataKey="revenue" fill="#722ed1" name="Doanh thu" />
-                    <Bar dataKey="count" fill="#1890ff" name="Số lượng" />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '80px 0' }}>
-                  <Text type="secondary">Chưa có dữ liệu doanh thu</Text>
-                </div>
+        <Col xs={24} xl={8}>
+          <Card title="Tín hiệu nhanh" className="section-card quick-card">
+            <List
+              itemLayout="horizontal"
+              dataSource={quickSignals}
+              renderItem={item => (
+                <List.Item
+                  key={item.key}
+                  className={item.onClick ? 'clickable' : ''}
+                  onClick={item.onClick}
+                >
+                  <List.Item.Meta
+                    avatar={<Avatar style={{ backgroundColor: item.color, color: '#fff' }} icon={item.icon} />}
+                    title={<div className="quick-title">{item.title}</div>}
+                    description={<Text type="secondary">{item.description}</Text>}
+                  />
+                  <div className="quick-value">{item.value}</div>
+                </List.Item>
               )}
-            </div>
-          </Card>
-        </Col>
-
-        {/* User Growth Chart */}
-        <Col xs={24} lg={8}>
-          <Card title="Tăng trưởng người dùng (30 ngày)" loading={loadingCharts}>
-            <div style={{ width: '100%', height: 300, minHeight: 300 }}>
-              {userGrowth.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={userGrowth}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="users" stroke="#1890ff" name="Tổng người dùng" strokeWidth={2} />
-                    <Line type="monotone" dataKey="newUsers" stroke="#52c41a" name="Người dùng mới" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '80px 0' }}>
-                  <Text type="secondary">Chưa có dữ liệu người dùng</Text>
-                </div>
-              )}
-            </div>
+            />
           </Card>
         </Col>
       </Row>

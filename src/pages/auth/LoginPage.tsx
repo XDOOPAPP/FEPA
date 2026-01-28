@@ -33,12 +33,11 @@ const LoginPage: React.FC = () => {
     try {
       setLoading(true)
 
-      // Login as admin only
-      await login(values.email, values.password)
+      // Login as admin
+      const userData = await login(values.email, values.password)
 
-      // After login, check role from context
-      const currentUser = sessionStorage.getItem('user') ? JSON.parse(sessionStorage.getItem('user') as string) : user
-      if (!currentUser || currentUser.role !== 'ADMIN') {
+      // Check if user is admin
+      if (!userData || (userData.role !== 'ADMIN')) {
         messageApi.error('Bạn không có quyền truy cập trang quản trị')
         setLoading(false)
         return

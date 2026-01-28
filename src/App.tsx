@@ -4,14 +4,14 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { lazy, Suspense, useEffect } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { queryClient } from './services/queryClient'
-import AdminRoute from './components/AdminRoute'
-import RootRedirect from './components/RootRedirect'
+import AdminRoute from './components/admin/AdminRoute'
+import RootRedirect from './components/common/RootRedirect'
 import AdminLayout from './layouts/AdminLayout/AdminLayout'
 import LoginPage from './pages/auth/LoginPage'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ProfilePage from './pages/profile/ProfilePage'
 import ClearStorage from './pages/ClearStorage'
-import { LoadingOverlay } from './components/LoadingOverlay'
+import { LoadingOverlay } from './components/common/LoadingOverlay'
 import { initializeSocket, disconnectSocket } from './services/socket'
 
 // Lazy-loaded admin pages to reduce initial bundle size
@@ -22,11 +22,11 @@ const AdsManagement = lazy(() => import('./pages/admin/AdsManagement'))
 const PartnerPortal = lazy(() => import('./pages/admin/PartnerPortal'))
 const NotificationsPage = lazy(() => import('./pages/admin/notifications/NotificationsPage'))
 const UserManagement = lazy(() => import('./pages/admin/UserManagement'))
-const UserStatistics = lazy(() => import('./pages/admin/UserStatistics'))
-const BlogAnalytics = lazy(() => import('./pages/admin/BlogAnalytics'))
+const UserStatistics = lazy(() => import('./pages/admin/analytics/UserStatistics'))
+const BlogAnalytics = lazy(() => import('./pages/admin/analytics/BlogAnalytics'))
 const RevenueDashboard = lazy(() => import('./pages/admin/RevenueDashboard'))
-const OcrAnalytics = lazy(() => import('./pages/admin/OcrAnalytics'))
-const AiAnalytics = lazy(() => import('./pages/admin/AiAnalytics'))
+const OcrAnalytics = lazy(() => import('./pages/admin/analytics/OcrAnalytics'))
+const AiAnalytics = lazy(() => import('./pages/admin/analytics/AiAnalytics'))
 const PendingBlogs = lazy(() => import('./pages/admin/blogs').then(m => ({ default: m.PendingBlogs })))
 const PublishedBlogs = lazy(() => import('./pages/admin/blogs').then(m => ({ default: m.PublishedBlogs })))
 const RejectedBlogs = lazy(() => import('./pages/admin/blogs').then(m => ({ default: m.RejectedBlogs })))
